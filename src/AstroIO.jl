@@ -10,7 +10,7 @@ using PhysicalParticles
 
 
 
-include("CSV")
-include("Gadget")
+include("CSV.jl")
+include("Gadget.jl")
 
 end # module
