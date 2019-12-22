@@ -1,3 +1,4 @@
+# using PhysicalParticles, Unitful, UnitfulAstro, StaticArrays
 # Header
 mutable struct HeaderGadget2
     npart::MArray{Tuple{6}, Int32, 1, 6} # gas, halo, disk, Bulge, star, blackholw
@@ -84,8 +85,9 @@ function read_gadget2_header(f::IOStream)
     return Header
 end
 
-function read_gadget2(filename::String)
+function read_gadget2(filename::String, showHeader = true)
     f = open(filename, "r")
+    @info "Reading data from $filename"
 
     temp1 = read(f, Int32)
     Header = read_gadget2_header(f)
@@ -94,12 +96,169 @@ function read_gadget2(filename::String)
         error("Wrong location symbol while reading Header!\n")
         quit()
     end
+    @info "Header loaded"
+
+    if showHeader
+        print(Header)
+    end
 
     NumTotal = sum(Header.npart)
 
+    # Initialize particlles
+    gases = [SPHGas() for i=1:Header.npart[1]]
+    haloes = [Star() for i=1:Header.npart[2]]
+    disks = [Star() for i=1:Header.npart[3]]
+    bulges = [Star() for i=1:Header.npart[4]]
+    stars = [Star() for i=1:Header.npart[5]]
+    blackholes = [Star() for i=1:Header.npart[6]]
+
+    data = Dict(
+        :gases => gases,
+        :haloes => haloes,
+        :disks => disks,
+        :bulges => bulges,
+        :stars => stars,
+        :blackholes => blackholes,
+    )
+    keys = [:gases, :haloes, :disks, :bulges, :stars, :blackholes]
+
+    # Read positions
+    temp1 = read(f, Int32)
+    for i in values(data)
+        for p in i
+            x = read(f, Float32)*u"kpc"
+            y = read(f, Float32)*u"kpc"
+            z = read(f, Float32)*u"kpc"
+            p.Pos = PVector(x, y, z)
+        end
+    end
+    temp2 = read(f, Int32)
+    if temp1!=temp2
+        error("Wrong location symbol while reading positions!\n")
+        quit()
+    end
+    @info "Position loaded"
+
+    # Read velocities
+    temp1 = read(f, Int32)
+    for i in values(data)
+        for p in i
+            vx = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
+            vy = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
+            vz = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
+            p.Vel = PVector(vx,vy,vz)
+        end
+    end
+    temp2 = read(f, Int32)
+    if temp1!=temp2
+        error("Wrong location symbol while reading velocities!\n")
+        quit()
+    end
+    @info "Velocity loaded"
+
+    # Read IDs
+    temp1 = read(f, Int32)
+    for i in values(data)
+        for p in i
+            p.ID = read(f, UInt32)
+        end
+    end
+    temp2 = read(f, Int32)
+    if temp1!=temp2
+        error("Wrong location symbol while reading IDs!\n")
+        quit()
+    end
+    @info "ID loaded"
+
+    # Read masses
+    read_mass_flag = false
+    for i in Header.mass
+        if i == 0.0
+            read_mass_flag = true
+            break
+        end
+    end
+
+    if read_mass_flag
+        @info "Reading mass from file"
+        temp1 = read(f, Int32)
+    end
+
+    for i in 1:6
+        @info "test point"
+        if Header.mass[i] == 0.0
+            for p in data[keys[i]]
+                p.Mass = read(f, Float32) * 1.0e10u"Msun"
+            end
+        else
+            for p in data[keys[i]]
+                p.Mass = Header.mass[i] * 1.0e10u"Msun"
+            end
+        end
+    end
+        
+        
+    if read_mass_flag
+        temp2 = read(f, Int32)
+        if temp1!=temp2
+            error("Wrong location symbol while reading masses!\n")
+            quit()
+        end
+    end
+    @info "Mass loaded"
+
+    # Read Gas Internal Energy Block
+    if Header.npart[1] > 0
+        # Read Entropy
+        temp1 = read(f, Int32)
+        for i in values(data)
+            for p in i
+                p.Entropy = read(f, Float32)*u"J/K"
+            end
+        end
+        temp2 = read(f, Int32)
+        if temp1!=temp2
+            error("Wrong location symbol while reading Entropy!\n")
+            quit()
+        end
+        @info "Entropy loaded"
+
+        # Read Density
+        if !eof(f)
+            temp1 = read(f, Int32)
+            for i in values(data)
+                for p in i
+                    p.Density = read(f, Float32)*10e10u"Msun/kpc^3"
+                end
+            end
+            temp2 = read(f, Int32)
+            if temp1!=temp2
+                error("Wrong location symbol while reading Density!\n")
+                quit()
+            end
+        end
+        @info "Density loaded"
+
+        # Read Hsml
+        if !eof(f)
+            temp1 = read(f, Int32)
+            for i in values(data)
+                for p in i
+                    p.Hsml = read(f, Float32)*u"kpc"
+                end
+            end
+            temp2 = read(f, Int32)
+            if temp1!=temp2
+                error("Wrong location symbol while reading Hsml!\n")
+                quit()
+            end
+        end
+        @info "Hsml loaded"
+    end
+
     close(f)
 
-    return Header
+    return Header, data
 end
 
 # Write
