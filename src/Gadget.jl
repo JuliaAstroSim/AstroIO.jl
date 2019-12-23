@@ -1,4 +1,7 @@
-# using PhysicalParticles, Unitful, UnitfulAstro, StaticArrays
+#! `values(Dict)` may not return values in the right order.
+
+KeysGadget2 = [:gases, :haloes, :disks, :bulges, :stars, :blackholes]
+
 # Header
 mutable struct HeaderGadget2
     npart::MArray{Tuple{6}, Int32, 1, 6} # gas, halo, disk, Bulge, star, blackholw
@@ -120,12 +123,11 @@ function read_gadget2(filename::String, showHeader = true)
         :stars => stars,
         :blackholes => blackholes,
     )
-    keys = [:gases, :haloes, :disks, :bulges, :stars, :blackholes]
 
     # Read positions
     temp1 = read(f, Int32)
-    for i in values(data)
-        for p in i
+    for i in 1:6
+        for p in data[KeysGadget2[i]]
             x = read(f, Float32)*u"kpc"
             y = read(f, Float32)*u"kpc"
             z = read(f, Float32)*u"kpc"
@@ -141,8 +143,8 @@ function read_gadget2(filename::String, showHeader = true)
 
     # Read velocities
     temp1 = read(f, Int32)
-    for i in values(data)
-        for p in i
+    for i in 1:6
+        for p in data[KeysGadget2[i]]
             vx = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
             vy = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
             vz = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
@@ -158,8 +160,8 @@ function read_gadget2(filename::String, showHeader = true)
 
     # Read IDs
     temp1 = read(f, Int32)
-    for i in values(data)
-        for p in i
+    for i in 1:6
+        for p in data[KeysGadget2[i]]
             p.ID = read(f, UInt32)
         end
     end
@@ -186,11 +188,12 @@ function read_gadget2(filename::String, showHeader = true)
 
     for i in 1:6
         if Header.mass[i] == 0.0
-            for p in data[keys[i]]
+            for p in data[KeysGadget2[i]]
+                # if no particle, this would not be executed
                 p.Mass = read(f, Float32) * 1.0e10u"Msun"
             end
         else
-            for p in data[keys[i]]
+            for p in data[KeysGadget2[i]]
                 p.Mass = Header.mass[i] * 1.0e10u"Msun"
             end
         end
@@ -207,13 +210,11 @@ function read_gadget2(filename::String, showHeader = true)
     @info "Mass loaded"
 
     # Read Gas Internal Energy Block
-    if Header.npart[1] > 0
+    if Header.npart[1] > 0 && Header.flag_entropy_instead_u > 0
         # Read Entropy
         temp1 = read(f, Int32)
-        for i in values(data)
-            for p in i
-                p.Entropy = read(f, Float32)*u"J/K"
-            end
+        for p in data.gases
+            p.Entropy = read(f, Float32)*u"J/K"
         end
         temp2 = read(f, Int32)
         if temp1!=temp2
@@ -225,10 +226,8 @@ function read_gadget2(filename::String, showHeader = true)
         # Read Density
         if !eof(f)
             temp1 = read(f, Int32)
-            for i in values(data)
-                for p in i
-                    p.Density = read(f, Float32)*10e10u"Msun/kpc^3"
-                end
+            for p in data.gases
+                p.Density = read(f, Float32)*10e10u"Msun/kpc^3"
             end
             temp2 = read(f, Int32)
             if temp1!=temp2
@@ -241,10 +240,8 @@ function read_gadget2(filename::String, showHeader = true)
         # Read Hsml
         if !eof(f)
             temp1 = read(f, Int32)
-            for i in values(data)
-                for p in i
-                    p.Hsml = read(f, Float32)*u"kpc"
-                end
+            for p in data.gases
+                p.Hsml = read(f, Float32)*u"kpc"
             end
             temp2 = read(f, Int32)
             if temp1!=temp2
@@ -263,6 +260,10 @@ end
 # Write
 
 function write_gadget2_header(f::IOStream, header::HeaderGadget2)
+    temp = 256
+
+    write(f, Int32(temp))
+
     for i in header.npart
         write(f, Int32(i))
     end
@@ -276,6 +277,19 @@ function write_gadget2_header(f::IOStream, header::HeaderGadget2)
     write(f, Int32(header.flag_sfr))
     write(f, Int32(header.flag_feedback))
 
+    for i in header.npartTotal
+        write(f, UInt32(i))
+    end
+
+    write(f, Int32(header.flag_cooling))
+    write(f, Int32(header.num_files))
+    write(f, Float64(header.BoxSize))
+    write(f, Float64(header.Omega0))
+    write(f, Float64(header.OmegaLambda))
+    write(f, Float64(header.HubbleParam))
+    write(f, Int32(header.flag_stellarage))
+    write(f, Int32(header.flag_metals))
+
     for i in header.npartTotalHighWord
         write(f, UInt32(i))
     end
@@ -283,28 +297,110 @@ function write_gadget2_header(f::IOStream, header::HeaderGadget2)
     write(f, Int32(header.flag_entropy_instead_u))
 
     for i = 1:60
-        write(f, "\0")
+        write(f, UInt8(0))
     end
+
+    write(f, Int32(temp))
+    flush(f)
 end
 
-function write_gadget2_particle(f::IOStream, data::Dict)
+function write_gadget2_particle(f::IOStream, header::HeaderGadget2, data::Dict)
+    NumTotal = sum(header.npart)
+    temp = 4 * NumTotal * 3
 
+    @info "  Writing Position"
+    write(f, Int32(temp))
+    for i in 1:6
+        for p in data[KeysGadget2[i]]
+            write(f, Float32(ustrip(u"kpc", p.Pos.x)))
+            write(f, Float32(ustrip(u"kpc", p.Pos.y)))
+            write(f, Float32(ustrip(u"kpc", p.Pos.z)))
+        end
+    end
+    write(f, Int32(temp))
+
+    @info "  Writing Velocity"
+    write(f, Int32(temp))
+    for i in 1:6
+        for p in data[KeysGadget2[i]]
+            write(f, Float32(ustrip(u"km/s", p.Vel.x)))
+            write(f, Float32(ustrip(u"km/s", p.Vel.y)))
+            write(f, Float32(ustrip(u"km/s", p.Vel.z)))
+        end
+    end
+    write(f, Int32(temp))
+
+    @info "  Writing ID"
+    temp = 4 * NumTotal
+    write(f, Int32(temp))
+    for i in 1:6
+        for p in data[KeysGadget2[i]]
+            write(f, Int32(p.ID))
+        end
+    end
+    write(f, Int32(temp))
+
+    @info "  Writing Mass"
+    temp = 0
+    for i in 1:6
+        if header.mass[i] == 0.0 && header.npart[i] != 0
+            temp += header.npart[i] * 4
+        end
+    end
+
+    if temp > 0
+        write(f, Int32(temp))
+
+        for i in 1:6
+            if header.mass[i] == 0.0
+                # if no particle, this would not be executed
+                for p in data[KeysGadget2[i]]
+                    write(f, Float32(ustrip(u"Msun", p.Mass)/1.0e10))
+                end
+            end
+        end
+
+        write(f, Int32(temp))
+    end
+
+    # Write Gas
+    if header.npart[1] > 0 && header.flag_entropy_instead_u > 0
+        temp = header.npart[1] * 4
+        @info "  Writing Entropy"
+        write(f, Int32(temp))
+        for p in data.gases
+            write(f, Float32(ustrip(u"J/K", p.Entropy)))
+        end
+        write(f, Int32(temp))
+
+        @info "  Writing Density"
+        write(f, Int32(temp))
+        for p in data.gases
+            write(f, Float32(ustrip(u"Msun/kpc^3", p.Density)/1.0e10))
+        end
+        write(f, Int32(temp))
+
+        @info "  Writing Hsml"
+        write(f, Int32(temp))
+        for p in data.gases
+            write(f, Float32(ustrip(u"kpc", p.Hsml)))
+        end
+        write(f, Int32(temp))
+    end
+    flush(f)
 end
 
 function write_gadget2(filename::String, header::HeaderGadget2, data::Dict)
     f = open(filename, "w")
 
-    temp::Int32 = 256
-
     @info "Writing Header"
-    write(f, temp)
     write_gadget2_header(f, header)
-    write(f, temp)
 
     @info "Writing Particle Data"
-    write_gadget2_particle(f, data)
+    write_gadget2_particle(f, header, data)
 
     close(f)
+    @info "Data saved"
     return true
 end
 

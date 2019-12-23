@@ -15,7 +15,7 @@ export
     # Base
     show,
 
-    HeaderGadget2,
+    HeaderGadget2, KeysGadget2,
 
     read_gadget2, write_gadget2
 

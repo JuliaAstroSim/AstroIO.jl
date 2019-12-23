@@ -11,6 +11,7 @@ function Base.show(io::IO, h::HeaderGadget2)
         "    |    Bulge  | ", h.npart[4], ", ", h.mass[4] * 1.0e10u"Msun", "\n",
         "    |    Star   | ", h.npart[5], ", ", h.mass[5] * 1.0e10u"Msun", "\n",
         "    | BlackHole | ", h.npart[6], ", ", h.mass[6] * 1.0e10u"Msun", "\n",
+        "    (If zero, mass would be read from file)",
         "  Start time: ", h.time, "\n",
         "  Redshift: ", h.redshift, "\n",
     )
