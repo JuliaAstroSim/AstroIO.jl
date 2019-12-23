@@ -185,7 +185,6 @@ function read_gadget2(filename::String, showHeader = true)
     end
 
     for i in 1:6
-        @info "test point"
         if Header.mass[i] == 0.0
             for p in data[keys[i]]
                 p.Mass = read(f, Float32) * 1.0e10u"Msun"
@@ -263,6 +262,50 @@ end
 
 # Write
 
+function write_gadget2_header(f::IOStream, header::HeaderGadget2)
+    for i in header.npart
+        write(f, Int32(i))
+    end
 
+    for i in header.mass
+        write(f, Float64(i))
+    end
+
+    write(f, Float64(header.time))
+    write(f, Float64(header.redshift))
+    write(f, Int32(header.flag_sfr))
+    write(f, Int32(header.flag_feedback))
+
+    for i in header.npartTotalHighWord
+        write(f, UInt32(i))
+    end
+
+    write(f, Int32(header.flag_entropy_instead_u))
+
+    for i = 1:60
+        write(f, "\0")
+    end
+end
+
+function write_gadget2_particle(f::IOStream, data::Dict)
+
+end
+
+function write_gadget2(filename::String, header::HeaderGadget2, data::Dict)
+    f = open(filename, "w")
+
+    temp::Int32 = 256
+
+    @info "Writing Header"
+    write(f, temp)
+    write_gadget2_header(f, header)
+    write(f, temp)
+
+    @info "Writing Particle Data"
+    write_gadget2_particle(f, data)
+
+    close(f)
+    return true
+end
 
 # FileIO API

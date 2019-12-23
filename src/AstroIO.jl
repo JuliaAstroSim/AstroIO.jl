@@ -1,6 +1,6 @@
 module AstroIO
 
-_precompile_(true)
+__precompile__(true)
 
 using Unitful, UnitfulAstro
 using FileIO, CSV, HDF5, JLD
@@ -15,7 +15,9 @@ export
     # Base
     show,
 
-    read_gadget2
+    HeaderGadget2,
+
+    read_gadget2, write_gadget2
 
 
 include("CSV.jl")
