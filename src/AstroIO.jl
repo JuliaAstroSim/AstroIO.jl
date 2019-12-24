@@ -3,17 +3,21 @@ module AstroIO
 __precompile__(true)
 
 using Unitful, UnitfulAstro
-using FileIO, CSV, HDF5, JLD
+using FileIO, JLD
 using StaticArrays
 using IterTools
 
 using PhysicalParticles
 
 import Base: show
+import FileIO: load, save
 
 export
     # Base
     show,
+
+    # FileIO
+    load, save,
 
     HeaderGadget2, KeysGadget2,
 

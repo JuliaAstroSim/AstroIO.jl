@@ -46,74 +46,66 @@ HeaderGadget2() = HeaderGadget2(
 
 # Read
 
-function read_gadget2_header(f::IOStream)
-    Header = HeaderGadget2()
-
-    for i in 1:6
-        Header.npart[i] = read(f, Int32)
-    end
-
-    for i in 1:6
-        Header.mass[i] = read(f, Float64)
-    end
-
-    Header.time = read(f, Float64)
-    Header.redshift = read(f, Float64)
-    Header.flag_sfr = read(f, Int32)
-    Header.flag_feedback = read(f, Int32)
-
-    for i in 1:6
-        Header.npartTotal[i] = read(f, UInt32)
-    end
-
-    Header.flag_cooling = read(f, Int32)
-    Header.num_files = read(f, Int32)
-    Header.BoxSize = read(f, Float64)
-    Header.Omega0 = read(f, Float64)
-    Header.OmegaLambda = read(f, Float64)
-    Header.HubbleParam = read(f, Float64)
-    Header.flag_stellarage = read(f, Int32)
-    Header.flag_metals = read(f, Int32)
-
-    for i in 1:6
-        Header.npartTotalHighWord[i] = read(f, UInt32)
-    end
-
-    Header.flag_entropy_instead_u = read(f, Int32)
-
-    for i = 1:60
-        Header.fill_array[i] = read(f, UInt8)
-    end
-
-    return Header
-end
-
-function read_gadget2(filename::String, showHeader = true)
-    f = open(filename, "r")
-    @info "Reading data from $filename"
+function read_gadget2_header(f::Union{IOStream, Stream{format"Gadget2"}})
+    header = HeaderGadget2()
 
     temp1 = read(f, Int32)
-    Header = read_gadget2_header(f)
+
+    for i in 1:6
+        header.npart[i] = read(f, Int32)
+    end
+
+    for i in 1:6
+        header.mass[i] = read(f, Float64)
+    end
+
+    header.time = read(f, Float64)
+    header.redshift = read(f, Float64)
+    header.flag_sfr = read(f, Int32)
+    header.flag_feedback = read(f, Int32)
+
+    for i in 1:6
+        header.npartTotal[i] = read(f, UInt32)
+    end
+
+    header.flag_cooling = read(f, Int32)
+    header.num_files = read(f, Int32)
+    header.BoxSize = read(f, Float64)
+    header.Omega0 = read(f, Float64)
+    header.OmegaLambda = read(f, Float64)
+    header.HubbleParam = read(f, Float64)
+    header.flag_stellarage = read(f, Int32)
+    header.flag_metals = read(f, Int32)
+
+    for i in 1:6
+        header.npartTotalHighWord[i] = read(f, UInt32)
+    end
+
+    header.flag_entropy_instead_u = read(f, Int32)
+
+    for i = 1:60
+        header.fill_array[i] = read(f, UInt8)
+    end
+
     temp2 = read(f, Int32)
     if temp1!=temp2
         error("Wrong location symbol while reading Header!\n")
         quit()
     end
-    @info "Header loaded"
+    
+    return header
+end
 
-    if showHeader
-        print(Header)
-    end
-
-    NumTotal = sum(Header.npart)
+function read_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, header::HeaderGadget2)
+    NumTotal = sum(header.npart)
 
     # Initialize particlles
-    gases = [SPHGas() for i=1:Header.npart[1]]
-    haloes = [Star() for i=1:Header.npart[2]]
-    disks = [Star() for i=1:Header.npart[3]]
-    bulges = [Star() for i=1:Header.npart[4]]
-    stars = [Star() for i=1:Header.npart[5]]
-    blackholes = [Star() for i=1:Header.npart[6]]
+    gases = [SPHGas() for i=1:header.npart[1]]
+    haloes = [Star() for i=1:header.npart[2]]
+    disks = [Star() for i=1:header.npart[3]]
+    bulges = [Star() for i=1:header.npart[4]]
+    stars = [Star() for i=1:header.npart[5]]
+    blackholes = [Star() for i=1:header.npart[6]]
 
     data = Dict(
         :gases => gases,
@@ -174,7 +166,7 @@ function read_gadget2(filename::String, showHeader = true)
 
     # Read masses
     read_mass_flag = false
-    for i in Header.mass
+    for i in header.mass
         if i == 0.0
             read_mass_flag = true
             break
@@ -187,14 +179,14 @@ function read_gadget2(filename::String, showHeader = true)
     end
 
     for i in 1:6
-        if Header.mass[i] == 0.0
+        if header.mass[i] == 0.0
             for p in data[KeysGadget2[i]]
                 # if no particle, this would not be executed
                 p.Mass = read(f, Float32) * 1.0e10u"Msun"
             end
         else
             for p in data[KeysGadget2[i]]
-                p.Mass = Header.mass[i] * 1.0e10u"Msun"
+                p.Mass = header.mass[i] * 1.0e10u"Msun"
             end
         end
     end
@@ -210,7 +202,7 @@ function read_gadget2(filename::String, showHeader = true)
     @info "Mass loaded"
 
     # Read Gas Internal Energy Block
-    if Header.npart[1] > 0 && Header.flag_entropy_instead_u > 0
+    if header.npart[1] > 0 && header.flag_entropy_instead_u > 0
         # Read Entropy
         temp1 = read(f, Int32)
         for p in data.gases
@@ -251,15 +243,28 @@ function read_gadget2(filename::String, showHeader = true)
         end
         @info "Hsml loaded"
     end
+    
+    return data
+end
+
+function read_gadget2(filename::String)
+    f = open(filename, "r")
+    @info "Reading data from $filename"
+    
+    @info "Reading Header"
+    header = read_gadget2_header(f)
+
+    @info "Reading Data"
+    data = read_gadget2_particle(f, header)
 
     close(f)
 
-    return Header, data
+    return header, data
 end
 
 # Write
 
-function write_gadget2_header(f::IOStream, header::HeaderGadget2)
+function write_gadget2_header(f::Union{IOStream, Stream{format"Gadget2"}}, header::HeaderGadget2)
     temp = 256
 
     write(f, Int32(temp))
@@ -304,7 +309,7 @@ function write_gadget2_header(f::IOStream, header::HeaderGadget2)
     flush(f)
 end
 
-function write_gadget2_particle(f::IOStream, header::HeaderGadget2, data::Dict)
+function write_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, header::HeaderGadget2, data::Dict)
     NumTotal = sum(header.npart)
     temp = 4 * NumTotal * 3
 
@@ -405,3 +410,30 @@ function write_gadget2(filename::String, header::HeaderGadget2, data::Dict)
 end
 
 # FileIO API
+
+add_format(format"Gadget2", (), [".gadget2", ".g2"])
+add_loader(format"Gadget2", :AstroIO)
+add_saver(format"Gadget2", :AstroIO)
+
+function load(s::Stream{format"Gadget2"})
+    header = read_gadget2_header(s)
+    data   = read_gadget2_particle(s, header)
+    return header, data
+end
+
+function load(f::File{format"Gadget2"})
+    open(f) do s
+        header, data = load(s)
+    end
+end
+
+function write(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::Dict)
+    write_gadget2_header(s, header)
+    write_gadget2_particle(s, header, data)
+end
+
+function write(f::File{format"Gadget2"}, header::HeaderGadget2, data::Dict)
+    open(f) do s
+        write(s, header, data)
+    end
+end
