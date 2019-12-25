@@ -6,6 +6,7 @@ using Unitful, UnitfulAstro
 using FileIO, JLD
 using StaticArrays
 using IterTools
+using Printf
 
 using PhysicalParticles
 
@@ -19,13 +20,17 @@ export
     # FileIO
     load, save,
 
+    # Gadget2
     HeaderGadget2, KeysGadget2,
+    read_gadget2, write_gadget2,
 
-    read_gadget2, write_gadget2
+    # CSV
+    write_csv,
+    read_csv
 
 
-include("CSV.jl")
 include("Gadget.jl")
+include("CSV.jl")
 include("PrettyPrint.jl")
 
 end # module
