@@ -257,8 +257,6 @@ version = "0.2.0"
 [[PhysicalParticles]]
 deps = ["DocStringExtensions", "LinearAlgebra", "NearestNeighbors", "PhysicalConstants", "Statistics", "Test", "Unitful", "UnitfulAstro"]
 git-tree-sha1 = "a7ea9771134114c872fdfdf4a513a362f522304f"
-repo-rev = "master"
-repo-url = "PhysicalParticles.jl"
 uuid = "78724250-4eb2-11e9-0f34-13a7aab864c5"
 version = "1.0.0"
 
