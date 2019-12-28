@@ -256,7 +256,7 @@ function write_csv(filename::String, particles::Array{T, N}; mode = "astro") whe
                  "#Pressure [Msun*kpc^-1*Gyr^-2] | DtEntropy [Msun*kpc^3/Gyr^2/K] | MaxSignalVel [kpc/Gyr] |\n")
         for p in particles
             buffer = @sprintf(
-                "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+                "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
                 p.ID,
                 ustrip(u"kpc", p.Pos.x),
                 ustrip(u"kpc", p.Pos.y),
