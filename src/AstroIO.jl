@@ -8,6 +8,7 @@ using WriteVTK
 using StaticArrays
 using IterTools
 using Printf
+using Distributed
 
 using PhysicalParticles
 
@@ -27,6 +28,9 @@ export
     read_gadget2_jld, write_gadget2_jld,
     read_jld, write_jld,
 
+    # VTK
+    write_vtk,
+
     # CSV
     write_csv,
     read_csv
@@ -36,7 +40,7 @@ push!(LOAD_PATH, pwd());
 include("Gadget.jl")
 include("CSV.jl")
 include("JLD2.jl")
-include("HDF5.jl")
+include("VTK.jl")
 include("PrettyPrint.jl")
 
 end # module

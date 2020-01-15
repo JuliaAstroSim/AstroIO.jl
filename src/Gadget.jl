@@ -96,10 +96,7 @@ function read_gadget2_header(f::Union{IOStream, Stream{format"Gadget2"}})
     return header
 end
 
-function read_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, header::HeaderGadget2)
-    NumTotal = sum(header.npart)
-
-    # Initialize particlles
+function init_data(header::HeaderGadget2, procs = workers())
     gases = [SPHGas() for i=1:header.npart[1]]
     haloes = [Star() for i=1:header.npart[2]]
     disks = [Star() for i=1:header.npart[3]]
@@ -115,6 +112,12 @@ function read_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, head
         :stars => stars,
         :blackholes => blackholes,
     )
+end
+
+function read_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, header::HeaderGadget2, procs = workers())
+    NumTotal = sum(header.npart)
+
+    data = init_data(header, procs)
 
     # Read positions
     temp1 = read(f, Int32)
