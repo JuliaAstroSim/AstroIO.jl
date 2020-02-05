@@ -14,10 +14,6 @@ header, data = read_gadget2("gassphere_littleendian.g2")
 end
 
 @testset "FileIO" begin
-    add_format(format"Gadget2", (), [".gadget2", ".g2"])
-    add_loader(format"Gadget2", :AstroIO)
-    add_saver(format"Gadget2", :AstroIO)
-
     h, d = load("gassphere_littleendian.g2")
     @test length(d) == 1472
 

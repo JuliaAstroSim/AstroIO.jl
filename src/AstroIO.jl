@@ -40,10 +40,6 @@ export
 
 GadgetTypes = [GAS(), HALO(), DISK(), BULGE(), STAR(), BLACKHOLE()]
 
-add_format(format"Gadget2", (), [".gadget2", ".g2"])
-add_loader(format"Gadget2", :AstroIO)
-add_saver(format"Gadget2", :AstroIO)
-
 include("Gadget.jl")
 include("CSV.jl")
 include("JLD2.jl")

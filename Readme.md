@@ -55,6 +55,13 @@ data = read("NoHeader.jld2")
 @load "NoHeader.jld2"
 ```
 
+## Package ecosystem
+
+- Basic data structure: [PhysicalParticles.jl](https://github.com/JuliaAstroSim/PhysicalParticles.jl)
+- Trees: [PhysicalTrees.jl](https://github.com/JuliaAstroSim/PhysicalTrees.jl)
+- Meshes: [PhysicalMeshes.jl](https://github.com/JuliaAstroSim/PhysicalMeshes.jl)
+- Plotting: [AstroPlot.jl](https://github.com/JuliaAstroSim/AstroPlot.jl)
+
 ## Contribution
 
 Welcome issues and PRs. Need help for other snapshot formats.

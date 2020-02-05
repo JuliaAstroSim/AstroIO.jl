@@ -92,7 +92,9 @@ version = "0.8.1"
 
 [[FileIO]]
 deps = ["Pkg"]
-git-tree-sha1 = "74585bf1f7ed7259e166011e89f49363d7fa89a6"
+git-tree-sha1 = "a59eda89674132bb585d01e87ef76dac74484272"
+repo-rev = "master"
+repo-url = "https://github.com/islent/FileIO.jl"
 uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 version = "1.2.1"
 
