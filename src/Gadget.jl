@@ -1,11 +1,7 @@
-#! `values(Dict)` may not return values in the right order.
-
-KeysGadget2 = [:gases, :haloes, :disks, :bulges, :stars, :blackholes]
-
 # Header
 mutable struct HeaderGadget2
-    npart::MArray{Tuple{6}, Int32, 1, 6} # gas, halo, disk, Bulge, star, blackholw
-    mass::MArray{Tuple{6}, Float64, 1, 6}
+    npart::MArray{Tuple{6},Int32,1,6} # gas, halo, disk, Bulge, star, blackholw
+    mass::MArray{Tuple{6},Float64,1,6}
 
     time::Float64
     redshift::Float64
@@ -13,7 +9,7 @@ mutable struct HeaderGadget2
     flag_sfr::Int32
     flag_feedback::Int32
 
-    npartTotal::MArray{Tuple{6}, UInt32, 1, 6}
+    npartTotal::MArray{Tuple{6},UInt32,1,6}
 
     flag_cooling::Int32
 
@@ -27,26 +23,24 @@ mutable struct HeaderGadget2
     flag_stellarage::Int32
     flag_metals::Int32
 
-    npartTotalHighWord::MArray{Tuple{6}, UInt32, 1, 6}
+    npartTotalHighWord::MArray{Tuple{6},UInt32,1,6}
 
     flag_entropy_instead_u::Int32
 
-    fill_array::MArray{Tuple{60}, UInt8, 1, 60}
+    fill_array::MArray{Tuple{60},UInt8,1,60}
 end
 
-HeaderGadget2() = HeaderGadget2(
-    MArray{Tuple{6}, Int32}([0,0,0,0,0,0]),
-    MArray{Tuple{6}, Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
+HeaderGadget2() = HeaderGadget2(MArray{Tuple{6},Int32}([0,0,0,0,0,0]),
+    MArray{Tuple{6},Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
     0.0, 0.0, 0, 0,
-    MArray{Tuple{6}, UInt32}([0,0,0,0,0,0]),
+    MArray{Tuple{6},UInt32}([0,0,0,0,0,0]),
     0, 1, 0.0, 0.3, 0.7, 0.71, 0, 0,
-    MArray{Tuple{6}, UInt32}([0,0,0,0,0,0]), 0,
-    @MArray zeros(UInt8, 60)
-)
+    MArray{Tuple{6},UInt32}([0,0,0,0,0,0]), 0,
+    @MArray zeros(UInt8, 60))
 
 # Read
 
-function read_gadget2_header(f::Union{IOStream, Stream{format"Gadget2"}})
+function read_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}})
     header = HeaderGadget2()
 
     temp1 = read(f, Int32)
@@ -88,82 +82,82 @@ function read_gadget2_header(f::Union{IOStream, Stream{format"Gadget2"}})
     end
 
     temp2 = read(f, Int32)
-    if temp1!=temp2
+    if temp1 != temp2
         error("Wrong location symbol while reading Header!\n")
-        quit()
     end
     
     return header
 end
 
 function init_data(header::HeaderGadget2, procs = workers())
-    gases = [SPHGas() for i=1:header.npart[1]]
-    haloes = [Star() for i=1:header.npart[2]]
-    disks = [Star() for i=1:header.npart[3]]
-    bulges = [Star() for i=1:header.npart[4]]
-    stars = [Star() for i=1:header.npart[5]]
-    blackholes = [Star() for i=1:header.npart[6]]
+    gases = [SPHGas() for i = 1:header.npart[1]]
+    haloes = [Star() for i = 1:header.npart[2]]
+    disks = [Star() for i = 1:header.npart[3]]
+    bulges = [Star() for i = 1:header.npart[4]]
+    stars = [Star() for i = 1:header.npart[5]]
+    blackholes = [Star() for i = 1:header.npart[6]]
 
-    data = Dict(
-        :gases => gases,
-        :haloes => haloes,
-        :disks => disks,
-        :bulges => bulges,
-        :stars => stars,
-        :blackholes => blackholes,
-    )
+    # Initialize particle types
+    for p in haloes
+        p.Type = HALO()
+    end
+
+    for p in disks
+        p.Type = DISK()
+    end
+
+    for p in bulges
+        p.Type = BULGE()
+    end
+
+    for p in blackholes
+        p.Type = BLACKHOLE()
+    end
+
+    return [gases; haloes; disks; bulges; stars; blackholes]
 end
 
-function read_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, header::HeaderGadget2, procs = workers())
+function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2)
     NumTotal = sum(header.npart)
 
     data = init_data(header, procs)
 
     # Read positions
     temp1 = read(f, Int32)
-    for i in 1:6
-        for p in data[KeysGadget2[i]]
-            x = read(f, Float32)*u"kpc"
-            y = read(f, Float32)*u"kpc"
-            z = read(f, Float32)*u"kpc"
-            p.Pos = PVector(x, y, z)
-        end
+    for p in data
+        x = read(f, Float32) * u"kpc"
+        y = read(f, Float32) * u"kpc"
+        z = read(f, Float32) * u"kpc"
+        p.Pos = PVector(x, y, z)
     end
     temp2 = read(f, Int32)
-    if temp1!=temp2
+    if temp1 != temp2
         error("Wrong location symbol while reading positions!\n")
-        quit()
     end
     @info "Position loaded"
 
     # Read velocities
     temp1 = read(f, Int32)
-    for i in 1:6
-        for p in data[KeysGadget2[i]]
-            vx = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
-            vy = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
-            vz = uconvert(u"kpc/Gyr", read(f, Float32)*u"km/s")
-            p.Vel = PVector(vx,vy,vz)
-        end
+    for p in data
+        vx = uconvert(u"kpc/Gyr", read(f, Float32) * u"km/s")
+        vy = uconvert(u"kpc/Gyr", read(f, Float32) * u"km/s")
+        vz = uconvert(u"kpc/Gyr", read(f, Float32) * u"km/s")
+        p.Vel = PVector(vx, vy, vz)
     end
     temp2 = read(f, Int32)
-    if temp1!=temp2
+    if temp1 != temp2
         error("Wrong location symbol while reading velocities!\n")
-        quit()
     end
     @info "Velocity loaded"
 
     # Read IDs
     temp1 = read(f, Int32)
-    for i in 1:6
-        for p in data[KeysGadget2[i]]
-            p.ID = read(f, UInt32)
-        end
+    for p in data
+        p.ID = read(f, UInt32)
     end
     temp2 = read(f, Int32)
-    if temp1!=temp2
+    if temp1 != temp2
         error("Wrong location symbol while reading IDs!\n")
-        quit()
     end
     @info "ID loaded"
 
@@ -181,15 +175,16 @@ function read_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, head
         temp1 = read(f, Int32)
     end
 
-    for i in 1:6
-        if header.mass[i] == 0.0
-            for p in data[KeysGadget2[i]]
+    count_temp = 0
+    for type in 1:6
+        if header.mass[type] == 0.0
+            for i in (count_temp + 1):(count_temp + header.npart[type])
                 # if no particle, this would not be executed
-                p.Mass = read(f, Float32) * 1.0e10u"Msun"
+                data[i].Mass = read(f, Float32) * 1.0e10u"Msun"
             end
         else
-            for p in data[KeysGadget2[i]]
-                p.Mass = header.mass[i] * 1.0e10u"Msun"
+            for i in (count_temp + 1):(count_temp + header.npart[type])
+                data[i].Mass = header.mass[type] * 1.0e10u"Msun"
             end
         end
     end
@@ -197,37 +192,35 @@ function read_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, head
         
     if read_mass_flag
         temp2 = read(f, Int32)
-        if temp1!=temp2
+        if temp1 != temp2
             error("Wrong location symbol while reading masses!\n")
-            quit()
         end
     end
     @info "Mass loaded"
 
     # Read Gas Internal Energy Block
+    NumGas = header.npart[1]
     if header.npart[1] > 0 && header.flag_entropy_instead_u > 0
         # Read Entropy
         temp1 = read(f, Int32)
-        for p in data.gases
-            p.Entropy = read(f, Float32)*u"J/K"
+        for p in data[1:NumGas]
+            p.Entropy = read(f, Float32) * u"J/K"
         end
         temp2 = read(f, Int32)
-        if temp1!=temp2
+        if temp1 != temp2
             error("Wrong location symbol while reading Entropy!\n")
-            quit()
         end
         @info "Entropy loaded"
 
         # Read Density
         if !eof(f)
             temp1 = read(f, Int32)
-            for p in data.gases
-                p.Density = read(f, Float32)*10e10u"Msun/kpc^3"
+            for p in data[1:NumGas]
+                p.Density = read(f, Float32) * 10e10u"Msun/kpc^3"
             end
             temp2 = read(f, Int32)
-            if temp1!=temp2
+            if temp1 != temp2
                 error("Wrong location symbol while reading Density!\n")
-                quit()
             end
         end
         @info "Density loaded"
@@ -235,13 +228,12 @@ function read_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, head
         # Read Hsml
         if !eof(f)
             temp1 = read(f, Int32)
-            for p in data.gases
-                p.Hsml = read(f, Float32)*u"kpc"
+            for p in data[1:NumGas]
+                p.Hsml = read(f, Float32) * u"kpc"
             end
             temp2 = read(f, Int32)
-            if temp1!=temp2
+            if temp1 != temp2
                 error("Wrong location symbol while reading Hsml!\n")
-                quit()
             end
         end
         @info "Hsml loaded"
@@ -267,7 +259,7 @@ end
 
 # Write
 
-function write_gadget2_header(f::Union{IOStream, Stream{format"Gadget2"}}, header::HeaderGadget2)
+function write_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2)
     temp = 256
 
     write(f, Int32(temp))
@@ -312,28 +304,34 @@ function write_gadget2_header(f::Union{IOStream, Stream{format"Gadget2"}}, heade
     flush(f)
 end
 
-function write_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, header::HeaderGadget2, data::Dict)
+function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data::Array)
     NumTotal = sum(header.npart)
     temp = 4 * NumTotal * 3
 
+    GadgetTypes = [GAS(), HALO(), DISK(), BULGE(), STAR(), BLACKHOLE()]
+
     @info "  Writing Position"
     write(f, Int32(temp))
-    for i in 1:6
-        for p in data[KeysGadget2[i]]
-            write(f, Float32(ustrip(u"kpc", p.Pos.x)))
-            write(f, Float32(ustrip(u"kpc", p.Pos.y)))
-            write(f, Float32(ustrip(u"kpc", p.Pos.z)))
+    for type in GadgetTypes
+        for p in data
+            if p.Type == type
+                write(f, Float32(ustrip(u"kpc", p.Pos.x)))
+                write(f, Float32(ustrip(u"kpc", p.Pos.y)))
+                write(f, Float32(ustrip(u"kpc", p.Pos.z)))
+            end
         end
     end
     write(f, Int32(temp))
 
     @info "  Writing Velocity"
     write(f, Int32(temp))
-    for i in 1:6
-        for p in data[KeysGadget2[i]]
-            write(f, Float32(ustrip(u"km/s", p.Vel.x)))
-            write(f, Float32(ustrip(u"km/s", p.Vel.y)))
-            write(f, Float32(ustrip(u"km/s", p.Vel.z)))
+    for type in GadgetTypes
+        for p in data
+            if p.Type == type
+                write(f, Float32(ustrip(u"km/s", p.Vel.x)))
+                write(f, Float32(ustrip(u"km/s", p.Vel.y)))
+                write(f, Float32(ustrip(u"km/s", p.Vel.z)))
+            end
         end
     end
     write(f, Int32(temp))
@@ -341,9 +339,11 @@ function write_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, hea
     @info "  Writing ID"
     temp = 4 * NumTotal
     write(f, Int32(temp))
-    for i in 1:6
-        for p in data[KeysGadget2[i]]
-            write(f, Int32(p.ID))
+    for type in GadgetTypes
+        for p in data
+            if p.Type == type
+                write(f, Int32(p.ID))
+            end
         end
     end
     write(f, Int32(temp))
@@ -362,8 +362,10 @@ function write_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, hea
         for i in 1:6
             if header.mass[i] == 0.0
                 # if no particle, this would not be executed
-                for p in data[KeysGadget2[i]]
-                    write(f, Float32(ustrip(u"Msun", p.Mass)/1.0e10))
+                for p in data
+                    if p.Type == GadgetTypes[i]
+                        write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
+                    end
                 end
             end
         end
@@ -376,29 +378,35 @@ function write_gadget2_particle(f::Union{IOStream, Stream{format"Gadget2"}}, hea
         temp = header.npart[1] * 4
         @info "  Writing Entropy"
         write(f, Int32(temp))
-        for p in data.gases
-            write(f, Float32(ustrip(u"J/K", p.Entropy)))
+        for p in data
+            if p.Type == GAS()
+                write(f, Float32(ustrip(u"J/K", p.Entropy)))
+            end
         end
         write(f, Int32(temp))
 
         @info "  Writing Density"
         write(f, Int32(temp))
-        for p in data.gases
-            write(f, Float32(ustrip(u"Msun/kpc^3", p.Density)/1.0e10))
+        for p in data
+            if p.Type == GAS()
+                write(f, Float32(ustrip(u"Msun/kpc^3", p.Density) / 1.0e10))
+            end
         end
         write(f, Int32(temp))
 
         @info "  Writing Hsml"
         write(f, Int32(temp))
-        for p in data.gases
-            write(f, Float32(ustrip(u"kpc", p.Hsml)))
+        for p in data
+            if p.Type == GAS()
+                write(f, Float32(ustrip(u"kpc", p.Hsml)))
+            end
         end
         write(f, Int32(temp))
     end
     flush(f)
 end
 
-function write_gadget2(filename::String, header::HeaderGadget2, data::Dict)
+function write_gadget2(filename::String, header::HeaderGadget2, data::Array)
     f = open(filename, "w")
 
     @info "Writing Header"
@@ -430,12 +438,12 @@ function load(f::File{format"Gadget2"})
     end
 end
 
-function write(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::Dict)
+function write(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::Array)
     write_gadget2_header(s, header)
     write_gadget2_particle(s, header, data)
 end
 
-function write(f::File{format"Gadget2"}, header::HeaderGadget2, data::Dict)
+function write(f::File{format"Gadget2"}, header::HeaderGadget2, data::Array)
     open(f) do s
         write(s, header, data)
     end
