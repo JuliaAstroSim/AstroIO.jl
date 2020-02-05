@@ -1,5 +1,6 @@
-function write_gadget2_jld(filename::String, header::HeaderGadget2, data::Dict)
+function write_gadget2_jld(filename::String, header::HeaderGadget2, data::Array)
     save(filename, Dict("header" => header, "data" => data))
+    return true
 end
 
 function read_gadget2_jld(filename::String)
@@ -7,8 +8,9 @@ function read_gadget2_jld(filename::String)
     return header, data
 end
 
-function write_jld(filename, data::Dict)
+function write_jld(filename, data::Array)
     save(filename, Dict("data" => data))
+    return true
 end
 
 function read_jld(filename::String)

@@ -12,7 +12,7 @@ using Distributed
 
 using PhysicalParticles
 
-import Base: show
+import Base: show, write
 import FileIO: load, save
 
 export
@@ -23,19 +23,26 @@ export
     load, save,
 
     # Gadget2
-    HeaderGadget2, KeysGadget2,
+    HeaderGadget2,
     read_gadget2, write_gadget2,
     read_gadget2_jld, write_gadget2_jld,
-    read_jld, write_jld,
 
     # VTK
     write_vtk,
 
     # CSV
     write_csv,
-    read_csv
 
-push!(LOAD_PATH, pwd());
+    # JLD2
+    read_jld, write_jld
+
+
+
+GadgetTypes = [GAS(), HALO(), DISK(), BULGE(), STAR(), BLACKHOLE()]
+
+add_format(format"Gadget2", (), [".gadget2", ".g2"])
+add_loader(format"Gadget2", :AstroIO)
+add_saver(format"Gadget2", :AstroIO)
 
 include("Gadget.jl")
 include("CSV.jl")

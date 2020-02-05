@@ -1,4 +1,4 @@
-function write_csv(filename::String, particles::Array{T,N}, units = nothing) where T <: Star2D where N
+function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: Star2D where N
     f = open("$filename.Star2D.csv", "w")
 
     uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
@@ -23,9 +23,10 @@ function write_csv(filename::String, particles::Array{T,N}, units = nothing) whe
     end
     
     close(f)
+    return true
 end
 
-function write_csv(filename::String, particles::Array{T,N}, units = nothing) where T <: Star where N
+function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: Star where N
     f = open("$filename.Star.csv", "w")
 
     uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
@@ -53,9 +54,10 @@ function write_csv(filename::String, particles::Array{T,N}, units = nothing) whe
     end
     
     close(f)
+    return true
 end
 
-function write_csv(filename::String, particles::Array{T,N}, units = nothing) where T <: SPHGas2D where N
+function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: SPHGas2D where N
     f = open("$filename.SPHGas2D.csv", "w")
 
     uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
@@ -94,9 +96,10 @@ function write_csv(filename::String, particles::Array{T,N}, units = nothing) whe
     end
     
     close(f)
+    return true
 end
 
-function write_csv(filename::String, particles::Array{T,N}, units = nothing) where T <: SPHGas where N
+function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: SPHGas where N
     f = open("$filename.SPHGas.csv", "w")
 
     uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
@@ -139,27 +142,21 @@ function write_csv(filename::String, particles::Array{T,N}, units = nothing) whe
     end
     
     close(f)
+    return true
 end
 
-function write_csv(filename::String, data::Dict;
-        mode = "astro",
-        seperate = false,)
-    if seperate
-        for key in keys(data)
-            write_csv(filename, data[key])
-            @info "$key saved to $filename.$key.csv"
-        end
-    else
-        uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
+function write_csv(filename::String, data::Array, units = uAstro)
 
-        if typeof(first(data)[2]) <: AbstractPoint3D
-            f = open("$filename.csv", "w")
+    uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
 
-            write(f, "#id | x y z [$uLength] | vx vy vz [$uLength/$uTime] | ax ay az oldacc [$uLength/$uTime^2] | m [$uMass] | Ti_endstep Ti_begstep GravCost | Potential [$uMass*$uLength^2/$uTime^2]\n")
-            for v in values(data)
-                for p in v
-                    buffer = @sprintf(
-                            "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
+    if typeof(first(data)) <: AbstractPoint3D
+        f = open("$filename.csv", "w")
+
+        write(f, "#id | x y z [$uLength] | vx vy vz [$uLength/$uTime] | ax ay az oldacc [$uLength/$uTime^2] | m [$uMass]\n")
+        for v in values(data)
+            for p in v
+                buffer = @sprintf(
+                            "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
                             p.ID,
                             ustrip(uLength, p.Pos.x),
                             ustrip(uLength, p.Pos.y),
@@ -171,23 +168,19 @@ function write_csv(filename::String, data::Dict;
                             ustrip(uLength / uTime^2, p.Acc.y),
                             ustrip(uLength / uTime^2, p.Acc.z),
                             ustrip(uMass, p.Mass),
-                            p.Ti_endstep,
-                            p.Ti_begstep,
-                            ustrip(uMass * uLength^2 / uTime^2, p.Potential),
                         )
-                    write(f, buffer)
-                end
+                write(f, buffer)
             end
+        end
             
-            close(f)
-        else # 2D particles
-            f = open("$filename.csv", "w")
+        close(f)
+    else # 2D particles
+        f = open("$filename.csv", "w")
 
-    
-            write(f, "#id | x y [$uLength] | vx vy [$uLength/$uTime] | ax ay oldacc [$uLength/$uTime^2] | m [$uMass] | Ti_endstep Ti_begstep GravCost | Potential [$uMass*$uLength^2/$uTime^2]\n")
-            for v in values(data)
-                for p in v
-                    buffer = @sprintf(
+        write(f, "#id | x y [$uLength] | vx vy [$uLength/$uTime] | ax ay oldacc [$uLength/$uTime^2] | m [$uMass]\n")
+        for v in values(data)
+            for p in v
+                buffer = @sprintf(
                             "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
                             p.ID,
                             ustrip(uLength, p.Pos.x),
@@ -201,18 +194,13 @@ function write_csv(filename::String, data::Dict;
                             p.Ti_begstep,
                             ustrip(uMass * uLength^2 / uTime^2, p.Potential),
                         )
-                    write(f, buffer)
-                end
+                write(f, buffer)
             end
-            
-            close(f)
         end
-        
-        @info "Data saved to $filename.csv"
+            
+        close(f)
     end
+        
+    @info "Data saved to $filename.csv"
     return true
-end
-
-function read_csv(filename::String, units = nothing)
-
 end

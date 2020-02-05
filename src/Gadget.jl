@@ -308,8 +308,6 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     NumTotal = sum(header.npart)
     temp = 4 * NumTotal * 3
 
-    GadgetTypes = [GAS(), HALO(), DISK(), BULGE(), STAR(), BLACKHOLE()]
-
     @info "  Writing Position"
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -422,10 +420,6 @@ end
 
 # FileIO API
 
-add_format(format"Gadget2", (), [".gadget2", ".g2"])
-add_loader(format"Gadget2", :AstroIO)
-add_saver(format"Gadget2", :AstroIO)
-
 function load(s::Stream{format"Gadget2"})
     header = read_gadget2_header(s)
     data   = read_gadget2_particle(s, header)
@@ -433,18 +427,21 @@ function load(s::Stream{format"Gadget2"})
 end
 
 function load(f::File{format"Gadget2"})
+    @info "Loading with FileIO"
     open(f) do s
         header, data = load(s)
     end
 end
 
-function write(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::Array)
+function save(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::Array)
     write_gadget2_header(s, header)
     write_gadget2_particle(s, header, data)
 end
 
-function write(f::File{format"Gadget2"}, header::HeaderGadget2, data::Array)
-    open(f) do s
-        write(s, header, data)
+function save(f::File{format"Gadget2"}, header::HeaderGadget2, data::Array)
+    @info "Writing with FileIO"
+    open(f, "w") do s
+        save(s, header, data)
     end
+    return true
 end

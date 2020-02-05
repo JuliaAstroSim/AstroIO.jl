@@ -1,1 +1,4 @@
-test/test.dat
+test/testGadget.g2
+test/testFileIO.g2
+test/testcsv*
+test/testjld*
