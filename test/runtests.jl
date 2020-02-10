@@ -22,19 +22,19 @@ end
 
 @testset "CSV" begin
     stars2d = [Star2D() for i = 1:10]
-    @test write_csv("testcsvStar2D", stars2d)
+    @test write_csv("testcsvStar2D", stars2d, nothing)
 
-    stars = [Star() for i = 1:10]
-    @test write_csv("testcsvStar", stars)
+    stars = [Star(uAstro) for i = 1:10]
+    @test write_csv("testcsvStar", stars, uAstro)
 
     gases2d = [SPHGas2D() for i=1:10]
-    @test write_csv("testcsvSPHGas2D", gases2d)
+    @test write_csv("testcsvSPHGas2D", gases2d, nothing)
 
-    gases = [SPHGas() for i=1:10]
-    @test write_csv("testcsvSPHGas", gases)
+    gases = [SPHGas(uAstro) for i=1:10]
+    @test write_csv("testcsvSPHGas", gases, uAstro)
 
     data = [[Star() for i = 1:10]; [SPHGas() for i = 1:10]]
-    @test write_csv("testcsvGeneral", data)
+    @test write_csv("testcsvGeneral", data, nothing)
 end
 
 @testset "JLD2" begin

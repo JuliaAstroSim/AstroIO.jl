@@ -99,19 +99,19 @@ function init_data(header::HeaderGadget2, procs = workers())
 
     # Initialize particle types
     for p in haloes
-        p.Type = HALO()
+        p.Collection = HALO()
     end
 
     for p in disks
-        p.Type = DISK()
+        p.Collection = DISK()
     end
 
     for p in bulges
-        p.Type = BULGE()
+        p.Collection = BULGE()
     end
 
     for p in blackholes
-        p.Type = BLACKHOLE()
+        p.Collection = BLACKHOLE()
     end
 
     return [gases; haloes; disks; bulges; stars; blackholes]
@@ -312,7 +312,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     write(f, Int32(temp))
     for type in GadgetTypes
         for p in data
-            if p.Type == type
+            if p.Collection == type
                 write(f, Float32(ustrip(u"kpc", p.Pos.x)))
                 write(f, Float32(ustrip(u"kpc", p.Pos.y)))
                 write(f, Float32(ustrip(u"kpc", p.Pos.z)))
@@ -325,7 +325,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     write(f, Int32(temp))
     for type in GadgetTypes
         for p in data
-            if p.Type == type
+            if p.Collection == type
                 write(f, Float32(ustrip(u"km/s", p.Vel.x)))
                 write(f, Float32(ustrip(u"km/s", p.Vel.y)))
                 write(f, Float32(ustrip(u"km/s", p.Vel.z)))
@@ -339,7 +339,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     write(f, Int32(temp))
     for type in GadgetTypes
         for p in data
-            if p.Type == type
+            if p.Collection == type
                 write(f, Int32(p.ID))
             end
         end
@@ -361,7 +361,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
             if header.mass[i] == 0.0
                 # if no particle, this would not be executed
                 for p in data
-                    if p.Type == GadgetTypes[i]
+                    if p.Collection == GadgetTypes[i]
                         write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
                     end
                 end
@@ -377,7 +377,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         @info "  Writing Entropy"
         write(f, Int32(temp))
         for p in data
-            if p.Type == GAS()
+            if p.Collection == GAS()
                 write(f, Float32(ustrip(u"J/K", p.Entropy)))
             end
         end
@@ -386,7 +386,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         @info "  Writing Density"
         write(f, Int32(temp))
         for p in data
-            if p.Type == GAS()
+            if p.Collection == GAS()
                 write(f, Float32(ustrip(u"Msun/kpc^3", p.Density) / 1.0e10))
             end
         end
@@ -395,7 +395,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         @info "  Writing Hsml"
         write(f, Int32(temp))
         for p in data
-            if p.Type == GAS()
+            if p.Collection == GAS()
                 write(f, Float32(ustrip(u"kpc", p.Hsml)))
             end
         end
