@@ -1,23 +1,27 @@
 function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: Star2D where N
     f = open("$filename.Star2D.csv", "w")
 
-    uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
+    uLength = getuLength(units)
+    uVel = getuVel(units)
+    uAcc = getuAcc(units)
+    uMass = getuMass(units)
+    uPotential = getuEnergy(units)
 
-    write(f, "#id | x y [$uLength] | vx vy [$uLength/$uTime] | ax ay oldacc [$uLength/$uTime^2] | m [$uMass] | Ti_endstep Ti_begstep GravCost | Potential [$uMass*$uLength^2/$uTime^2]\n")
+    write(f, "#id | x y $uLength | vx vy $uVel | ax ay oldacc $uAcc | m $uMass | Ti_endstep Ti_begstep GravCost | Potential $uPotential\n")
     for p in particles
         buffer = @sprintf(
                 "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
                 p.ID,
                 ustrip(uLength, p.Pos.x),
                 ustrip(uLength, p.Pos.y),
-                ustrip(uLength / uTime, p.Vel.x),
-                ustrip(uLength / uTime, p.Vel.y),
-                ustrip(uLength / uTime^2, p.Acc.x),
-                ustrip(uLength / uTime^2, p.Acc.y),
+                ustrip(uVel, p.Vel.x),
+                ustrip(uVel, p.Vel.y),
+                ustrip(uAcc, p.Acc.x),
+                ustrip(uAcc, p.Acc.y),
                 ustrip(uMass, p.Mass),
                 p.Ti_endstep,
                 p.Ti_begstep,
-                ustrip(uMass * uLength^2 / uTime^2, p.Potential),
+                ustrip(uPotential, p.Potential),
             )
         write(f, buffer)
     end
@@ -29,9 +33,13 @@ end
 function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: Star where N
     f = open("$filename.Star.csv", "w")
 
-    uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
+    uLength = getuLength(units)
+    uVel = getuVel(units)
+    uAcc = getuAcc(units)
+    uMass = getuMass(units)
+    uPotential = getuEnergy(units)
 
-    write(f, "#id | x y z [$uLength] | vx vy vz [$uLength/$uTime] | ax ay az oldacc [$uLength/$uTime^2] | m [$uMass] | Ti_endstep Ti_begstep GravCost | Potential [$uMass*$uLength^2/$uTime^2]\n")
+    write(f, "#id | x y z $uLength | vx vy vz $uVel | ax ay az oldacc $uAcc | m $uMass | Ti_endstep Ti_begstep GravCost | Potential $uPotential\n")
     for p in particles
         buffer = @sprintf(
                 "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
@@ -39,16 +47,16 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
                 ustrip(uLength, p.Pos.x),
                 ustrip(uLength, p.Pos.y),
                 ustrip(uLength, p.Pos.z),
-                ustrip(uLength / uTime, p.Vel.x),
-                ustrip(uLength / uTime, p.Vel.y),
-                ustrip(uLength / uTime, p.Vel.z),
-                ustrip(uLength / uTime^2, p.Acc.x),
-                ustrip(uLength / uTime^2, p.Acc.y),
-                ustrip(uLength / uTime^2, p.Acc.z),
+                ustrip(uVel, p.Vel.x),
+                ustrip(uVel, p.Vel.y),
+                ustrip(uVel, p.Vel.z),
+                ustrip(uAcc, p.Acc.x),
+                ustrip(uAcc, p.Acc.y),
+                ustrip(uAcc, p.Acc.z),
                 ustrip(uMass, p.Mass),
                 p.Ti_endstep,
                 p.Ti_begstep,
-                ustrip(uMass * uLength^2 / uTime^2, p.Potential),
+                ustrip(uPotential, p.Potential),
             )
         write(f, buffer)
     end
@@ -60,37 +68,53 @@ end
 function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: SPHGas2D where N
     f = open("$filename.SPHGas2D.csv", "w")
 
-    uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
+    uLength = getuLength(units)
+    uVel = getuVel(units)
+    uAcc = getuAcc(units)
+    uMass = getuMass(units)
+    uTime = getuTime(units)
+    uPotential = getuEnergy(units)
+    uEntropy = getuEntropy(units)
+    uDensity2D = getuDensity2D(units)
+    uPressure = getuPressure(units)
 
-    write(f, "#id | x y [$uLength] | vx vy [$uLength/$uTime] | ax ay oldacc [$uLength/$uTime^2] | m [$uMass] | Ti_endstep Ti_begstep GravCost | Potential [$uMass*$uLength^2/$uTime^2] | \n" * 
-                 "#Entropy [$uMass*$uLength^2/$uTime^2/$uTemperature] | Density [$uMass/$uLength^2] | Hsml [$uLength] | rvx rvy [$uLength/$uTime] | divv [$uTime^-1] | curlv [$uTime^-1] | dHsmlRho [] | \n" *
-                 "#Pressure [$uMass*$uLength^-1*$uTime^-2] | DtEntropy [$uMass*$uLength^3/$uTime^2/$uTemperature] | MaxSignalVel [$uLength/$uTime] |\n")
+    if isnothing(units)
+        uTimeInv = nothing
+        uDtEntropy = nothing
+    else
+        uTimeInv = uTime^-1
+        uDtEntropy = uEntropy / uTime
+    end
+
+    write(f, "#id | x y $uLength | vx vy $uVel | ax ay oldacc $uAcc | m $uMass | Ti_endstep Ti_begstep GravCost | Potential $uPotential | \n" * 
+                 "#Entropy $uEntropy | Density $uDensity2D | Hsml $uLength | rvx rvy $uVel | divv $uTimeInv | curlv $uTimeInv | dHsmlRho ]| \n" *
+                 "#Pressure $uPressure | DtEntropy $uDtEntropy | MaxSignalVel $uVel |\n")
     for p in particles
         buffer = @sprintf(
                 "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
                 p.ID,
                 ustrip(uLength, p.Pos.x),
                 ustrip(uLength, p.Pos.y),
-                ustrip(uLength / uTime, p.Vel.x),
-                ustrip(uLength / uTime, p.Vel.y),
-                ustrip(uLength / uTime^2, p.Acc.x),
-                ustrip(uLength / uTime^2, p.Acc.y),
+                ustrip(uVel, p.Vel.x),
+                ustrip(uVel, p.Vel.y),
+                ustrip(uAcc, p.Acc.x),
+                ustrip(uAcc, p.Acc.y),
                 ustrip(uMass, p.Mass),
                 p.Ti_endstep,
                 p.Ti_begstep,
-                ustrip(uMass * uLength^2 / uTime^2, p.Potential),
+                ustrip(uPotential, p.Potential),
 
-                ustrip(uMass * uLength^2 / uTime^2 / uTemperature, p.Entropy),
-                ustrip(uMass / uLength^2, p.Density),
+                ustrip(uEntropy, p.Entropy),
+                ustrip(uDensity2D, p.Density),
                 ustrip(uLength, p.Hsml),
-                ustrip(uLength / uTime, p.RotVel.x),
-                ustrip(uLength / uTime, p.RotVel.y),
-                ustrip(uTime^-1, p.DivVel),
-                ustrip(uTime^-1, p.CurlVel),
+                ustrip(uVel, p.RotVel.x),
+                ustrip(uVel, p.RotVel.y),
+                ustrip(uTimeInv, p.DivVel),
+                ustrip(uTimeInv, p.CurlVel),
                 p.dHsmlRho,
-                ustrip(uMass * uLength^-1 * uTime^-2, p.Pressure),
-                ustrip(uMass * uLength^2 / uTime^3 / uTemperature, p.DtEntropy),
-                ustrip(uLength / uTime, p.MaxSignalVel)
+                ustrip(uPressure, p.Pressure),
+                ustrip(uDtEntropy, p.DtEntropy),
+                ustrip(uVel, p.MaxSignalVel)
             )
         write(f, buffer)
     end
@@ -102,11 +126,27 @@ end
 function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: SPHGas where N
     f = open("$filename.SPHGas.csv", "w")
 
-    uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
+    uLength = getuLength(units)
+    uVel = getuVel(units)
+    uAcc = getuAcc(units)
+    uMass = getuMass(units)
+    uTime = getuTime(units)
+    uPotential = getuEnergy(units)
+    uEntropy = getuEntropy(units)
+    uDensity = getuDensity(units)
+    uPressure = getuPressure(units)
 
-    write(f, "#id | x y z [$uLength] | vx vy vz [$uLength/$uTime] | ax ay az oldacc [$uLength/$uTime^2] | m [$uMass] | Ti_endstep Ti_begstep GravCost | Potential [$uMass*$uLength^2/$uTime^2] | \n" * 
-                 "#Entropy [$uMass*$uLength^2/$uTime^2/$uTemperature] | Density [$uMass/$uLength^3] | Hsml [$uLength] | rvx rvy rvz [$uLength/$uTime] | divv [$uTime^-1] | curlv [$uTime^-1] | dHsmlRho [] | \n" *
-                 "#Pressure [$uMass*$uLength^-1*$uTime^-2] | DtEntropy [$uMass*$uLength^3/$uTime^2/$uTemperature] | MaxSignalVel [$uLength/$uTime] |\n")
+    if isnothing(units)
+        uTimeInv = nothing
+        uDtEntropy = nothing
+    else
+        uTimeInv = uTime^-1
+        uDtEntropy = uEntropy / uTime
+    end
+
+    write(f, "#id | x y z $uLength | vx vy vz $uVel | ax ay az oldacc $uAcc | m $uMass | Ti_endstep Ti_begstep GravCost | Potential $uPotential | \n" * 
+                 "#Entropy $uEntropy | Density $uDensity] | Hsml $uLength | rvx rvy rvz $uVel | divv $uTimeInv | curlv $uTimeInv | dHsmlRho ]| \n" *
+                 "#Pressure $uPressure | DtEntropy $uDtEntropy | MaxSignalVel $uVel |\n")
     for p in particles
         buffer = @sprintf(
                 "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
@@ -114,29 +154,29 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
                 ustrip(uLength, p.Pos.x),
                 ustrip(uLength, p.Pos.y),
                 ustrip(uLength, p.Pos.z),
-                ustrip(uLength / uTime, p.Vel.x),
-                ustrip(uLength / uTime, p.Vel.y),
-                ustrip(uLength / uTime, p.Vel.z),
-                ustrip(uLength / uTime^2, p.Acc.x),
-                ustrip(uLength / uTime^2, p.Acc.y),
-                ustrip(uLength / uTime^2, p.Acc.z),
+                ustrip(uVel, p.Vel.x),
+                ustrip(uVel, p.Vel.y),
+                ustrip(uVel, p.Vel.z),
+                ustrip(uAcc, p.Acc.x),
+                ustrip(uAcc, p.Acc.y),
+                ustrip(uAcc, p.Acc.z),
                 ustrip(uMass, p.Mass),
                 p.Ti_endstep,
                 p.Ti_begstep,
-                ustrip(uMass * uLength^2 / uTime^2, p.Potential),
+                ustrip(uPotential, p.Potential),
 
-                ustrip(uMass * uLength^2 / uTime^2 / uTemperature, p.Entropy),
-                ustrip(uMass / uLength^3, p.Density),
+                ustrip(uEntropy, p.Entropy),
+                ustrip(uDensity, p.Density),
                 ustrip(uLength, p.Hsml),
-                ustrip(uLength / uTime, p.RotVel.x),
-                ustrip(uLength / uTime, p.RotVel.y),
-                ustrip(uLength / uTime, p.RotVel.z),
-                ustrip(uTime^-1, p.DivVel),
-                ustrip(uTime^-1, p.CurlVel),
+                ustrip(uVel, p.RotVel.x),
+                ustrip(uVel, p.RotVel.y),
+                ustrip(uVel, p.RotVel.z),
+                ustrip(uTimeInv, p.DivVel),
+                ustrip(uTimeInv, p.CurlVel),
                 p.dHsmlRho,
-                ustrip(uMass * uLength^-1 * uTime^-2, p.Pressure),
-                ustrip(uMass * uLength^2 / uTime^3 / uTemperature, p.DtEntropy),
-                ustrip(uLength / uTime, p.MaxSignalVel)
+                ustrip(uPressure, p.Pressure),
+                ustrip(uDtEntropy, p.DtEntropy),
+                ustrip(uVel, p.MaxSignalVel)
             )
         write(f, buffer)
     end
@@ -147,12 +187,15 @@ end
 
 function write_csv(filename::String, data::Array, units = uAstro)
 
-    uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
+    uLength = getuLength(units)
+    uVel = getuVel(units)
+    uAcc = getuAcc(units)
+    uMass = getuMass(units)
 
     if typeof(first(data)) <: AbstractPoint3D
         f = open("$filename.csv", "w")
 
-        write(f, "#id | x y z [$uLength] | vx vy vz [$uLength/$uTime] | ax ay az oldacc [$uLength/$uTime^2] | m [$uMass]\n")
+        write(f, "#id | x y z $uLength | vx vy vz $uVel | ax ay az oldacc $uAcc | m $uMass\n")
         for v in values(data)
             for p in v
                 buffer = @sprintf(
@@ -161,12 +204,12 @@ function write_csv(filename::String, data::Array, units = uAstro)
                             ustrip(uLength, p.Pos.x),
                             ustrip(uLength, p.Pos.y),
                             ustrip(uLength, p.Pos.z),
-                            ustrip(uLength / uTime, p.Vel.x),
-                            ustrip(uLength / uTime, p.Vel.y),
-                            ustrip(uLength / uTime, p.Vel.z),
-                            ustrip(uLength / uTime^2, p.Acc.x),
-                            ustrip(uLength / uTime^2, p.Acc.y),
-                            ustrip(uLength / uTime^2, p.Acc.z),
+                            ustrip(uVel, p.Vel.x),
+                            ustrip(uVel, p.Vel.y),
+                            ustrip(uVel, p.Vel.z),
+                            ustrip(uAcc, p.Acc.x),
+                            ustrip(uAcc, p.Acc.y),
+                            ustrip(uAcc, p.Acc.z),
                             ustrip(uMass, p.Mass),
                         )
                 write(f, buffer)
@@ -177,22 +220,19 @@ function write_csv(filename::String, data::Array, units = uAstro)
     else # 2D particles
         f = open("$filename.csv", "w")
 
-        write(f, "#id | x y [$uLength] | vx vy [$uLength/$uTime] | ax ay oldacc [$uLength/$uTime^2] | m [$uMass]\n")
+        write(f, "#id | x y $uLength | vx vy $uVel | ax ay oldacc $uAcc | m $uMass\n")
         for v in values(data)
             for p in v
                 buffer = @sprintf(
-                            "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
+                            "%d,%f,%f,%f,%f,%f,%f,%f\n",
                             p.ID,
                             ustrip(uLength, p.Pos.x),
                             ustrip(uLength, p.Pos.y),
-                            ustrip(uLength / uTime, p.Vel.x),
-                            ustrip(uLength / uTime, p.Vel.y),
-                            ustrip(uLength / uTime^2, p.Acc.x),
-                            ustrip(uLength / uTime^2, p.Acc.y),
+                            ustrip(uVel, p.Vel.x),
+                            ustrip(uVel, p.Vel.y),
+                            ustrip(uAcc, p.Acc.x),
+                            ustrip(uAcc, p.Acc.y),
                             ustrip(uMass, p.Mass),
-                            p.Ti_endstep,
-                            p.Ti_begstep,
-                            ustrip(uMass * uLength^2 / uTime^2, p.Potential),
                         )
                 write(f, buffer)
             end
