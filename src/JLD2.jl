@@ -8,7 +8,7 @@ function read_gadget2_jld(filename::String)
     return header, data
 end
 
-function write_jld(filename, data::Array)
+function write_jld(filename::String, data::Array)
     save(filename, Dict("data" => data))
     return true
 end

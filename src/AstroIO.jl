@@ -19,6 +19,11 @@ export
     # Base
     show,
 
+    AbstractOutputType,
+        gadget2,
+        hdf5,
+        jld2,
+
     # FileIO
     load, save,
 
@@ -39,6 +44,13 @@ export
 
 
 GadgetTypes = [GAS(), HALO(), DISK(), BULGE(), STAR(), BLACKHOLE()]
+
+
+abstract type AbstractOutputType end
+
+struct gadget2 <: AbstractOutputType end
+struct hdf5 <: AbstractOutputType end
+struct jld2 <: AbstractOutputType end
 
 include("Gadget.jl")
 include("CSV.jl")
