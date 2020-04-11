@@ -7,7 +7,8 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
     uMass = getuMass(units)
     uPotential = getuEnergy(units)
 
-    write(f, "#id | x y $uLength | vx vy $uVel | ax ay oldacc $uAcc | m $uMass | Ti_endstep Ti_begstep GravCost | Potential $uPotential\n")
+    write(f, "#id | x y", axisunit(uLength), " | vx vy", axisunit(uVel), " | ax ay oldacc", axisunit(uAcc),
+             " | m", axisunit(uMass), " | Ti_endstep Ti_begstep GravCost | Potential", axisunit(uPotential), "\n")
     for p in particles
         buffer = @sprintf(
                 "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
@@ -39,7 +40,8 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
     uMass = getuMass(units)
     uPotential = getuEnergy(units)
 
-    write(f, "#id | x y z $uLength | vx vy vz $uVel | ax ay az oldacc $uAcc | m $uMass | Ti_endstep Ti_begstep GravCost | Potential $uPotential\n")
+    write(f, "#id | x y z", axisunit(uLength), " | vx vy vz", axisunit(uVel), " | ax ay az oldacc", axisunit(uAcc),
+             " | m", axisunit(uMass), " | Ti_endstep Ti_begstep GravCost | Potential", axisunit(uPotential), "\n")
     for p in particles
         buffer = @sprintf(
                 "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
@@ -86,9 +88,11 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
         uDtEntropy = uEntropy / uTime
     end
 
-    write(f, "#id | x y $uLength | vx vy $uVel | ax ay oldacc $uAcc | m $uMass | Ti_endstep Ti_begstep GravCost | Potential $uPotential | \n" * 
-                 "#Entropy $uEntropy | Density $uDensity2D | Hsml $uLength | rvx rvy $uVel | divv $uTimeInv | curlv $uTimeInv | dHsmlRho ]| \n" *
-                 "#Pressure $uPressure | DtEntropy $uDtEntropy | MaxSignalVel $uVel |\n")
+    write(f, "#id | x y", axisunit(uLength), " | vx vy", axisunit(uVel), " | ax ay oldacc", axisunit(uAcc),
+             " | m", axisunit(uMass), " | Ti_endstep Ti_begstep GravCost | Potential", axisunit(uPotential), " | \n",
+             "#Entropy", axisunit(uEntropy), " | Density", axisunit(uDensity2D), " | Hsml", axisunit(uLength),
+             " | rvx rvy", axisunit(uVel), " | divv", axisunit(uTimeInv), " | curlv", axisunit(uTimeInv), " | dHsmlRho", axisunit(uLength), " | \n",
+             "#Pressure", axisunit(uPressure), " | DtEntropy", axisunit(uDtEntropy), " | MaxSignalVel", axisunit(uVel), " |\n")
     for p in particles
         buffer = @sprintf(
                 "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
@@ -111,7 +115,7 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
                 ustrip(uVel, p.RotVel.y),
                 ustrip(uTimeInv, p.DivVel),
                 ustrip(uTimeInv, p.CurlVel),
-                p.dHsmlRho,
+                ustrip(uLength, p.dHsmlRho),
                 ustrip(uPressure, p.Pressure),
                 ustrip(uDtEntropy, p.DtEntropy),
                 ustrip(uVel, p.MaxSignalVel)
@@ -144,9 +148,11 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
         uDtEntropy = uEntropy / uTime
     end
 
-    write(f, "#id | x y z $uLength | vx vy vz $uVel | ax ay az oldacc $uAcc | m $uMass | Ti_endstep Ti_begstep GravCost | Potential $uPotential | \n" * 
-                 "#Entropy $uEntropy | Density $uDensity] | Hsml $uLength | rvx rvy rvz $uVel | divv $uTimeInv | curlv $uTimeInv | dHsmlRho ]| \n" *
-                 "#Pressure $uPressure | DtEntropy $uDtEntropy | MaxSignalVel $uVel |\n")
+    write(f, "#id | x y z", axisunit(uLength), " | vx vy vz", axisunit(uVel), " | ax ay az oldacc", axisunit(uAcc),
+             " | m", axisunit(uMass), " | Ti_endstep Ti_begstep GravCost | Potential", axisunit(uPotential), " | \n",
+             "#Entropy", axisunit(uEntropy), " | Density", axisunit(uDensity), " | Hsml", axisunit(uLength),
+             " | rvx rvy rvz", axisunit(uVel), " | divv", axisunit(uTimeInv), " | curlv", axisunit(uTimeInv), " | dHsmlRho", axisunit(uLength), " | \n",
+             "#Pressure", axisunit(uPressure), " | DtEntropy", axisunit(uDtEntropy), " | MaxSignalVel", axisunit(uVel), " |\n")
     for p in particles
         buffer = @sprintf(
                 "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
@@ -173,7 +179,7 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
                 ustrip(uVel, p.RotVel.z),
                 ustrip(uTimeInv, p.DivVel),
                 ustrip(uTimeInv, p.CurlVel),
-                p.dHsmlRho,
+                ustrip(uLength, p.dHsmlRho),
                 ustrip(uPressure, p.Pressure),
                 ustrip(uDtEntropy, p.DtEntropy),
                 ustrip(uVel, p.MaxSignalVel)
@@ -195,7 +201,7 @@ function write_csv(filename::String, data::Array, units = uAstro)
     if typeof(first(data)) <: AbstractPoint3D
         f = open("$filename.csv", "w")
 
-        write(f, "#id | x y z $uLength | vx vy vz $uVel | ax ay az oldacc $uAcc | m $uMass\n")
+        write(f, "#id | x y z", axisunit(uLength), " | vx vy vz", axisunit(uVel), " | ax ay az oldacc", axisunit(uAcc), " | m", axisunit(uMass), "\n")
         for v in values(data)
             for p in v
                 buffer = @sprintf(
@@ -220,7 +226,7 @@ function write_csv(filename::String, data::Array, units = uAstro)
     else # 2D particles
         f = open("$filename.csv", "w")
 
-        write(f, "#id | x y $uLength | vx vy $uVel | ax ay oldacc $uAcc | m $uMass\n")
+        write(f, "#id | x y", axisunit(uLength), " | vx vy", axisunit(uVel), " | ax ay oldacc", axisunit(uAcc), " | m", axisunit(uMass), "\n")
         for v in values(data)
             for p in v
                 buffer = @sprintf(

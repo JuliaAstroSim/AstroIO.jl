@@ -259,6 +259,39 @@ end
 
 # Write
 
+function count_gadget_types(data::Array{T,N}) where T<:AbstractParticle where N
+    Counts = MArray{Tuple{6},Int32}([0,0,0,0,0,0])
+    for p in data
+        index = findfirst(x->x==p.Collection, GadgetTypes)
+        if !isnothing(index)
+            Counts[index] += 1
+        end
+    end
+    return Counts
+end
+
+function generate_gadget2_header(data::Array{T,N};
+                                 Counts = count_gadget_types(data),
+
+                                 time::Float64 = 0.0,
+                                 redshift::Float64 = 0.0,
+                                 counts_total = Counts,
+                                 nfiles::Int64 = 1) where T<:AbstractParticle where N
+    return HeaderGadget2(
+        Counts,
+        MArray{Tuple{6},Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
+        time,
+        redshift, 0, 0,
+        counts_total,
+        0,
+        nfiles,
+
+        0.0, 0.3, 0.7, 0.71, 0, 0,
+        MArray{Tuple{6},UInt32}([0,0,0,0,0,0]), 0,
+        @MArray zeros(UInt8, 60)
+    )
+end
+
 function write_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2)
     temp = 256
 
@@ -408,6 +441,21 @@ function write_gadget2(filename::String, header::HeaderGadget2, data::Array)
     f = open(filename, "w")
 
     @info "Writing Header"
+    write_gadget2_header(f, header)
+
+    @info "Writing Particle Data"
+    write_gadget2_particle(f, header, data)
+
+    close(f)
+    @info "Data saved"
+    return true
+end
+
+function write_gadget2(filename::String, data::Array)
+    f = open(filename, "w")
+
+    @info "Generate and writing Header"
+    header = generate_gadget2_header(data)
     write_gadget2_header(f, header)
 
     @info "Writing Particle Data"

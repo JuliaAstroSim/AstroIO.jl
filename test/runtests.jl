@@ -11,6 +11,8 @@ header, data = read_gadget2("gassphere_littleendian.g2")
     @test length(data) == 1472
 
     @test write_gadget2("testGadget.g2", header, data)
+
+    @test write_gadget2("testGadgetHeaderGeneration.g2", data)
 end
 
 @testset "FileIO" begin
