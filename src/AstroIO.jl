@@ -41,7 +41,10 @@ export
     write_csv,
 
     # JLD2
-    read_jld, write_jld
+    read_jld, write_jld,
+
+    # Tools
+    renamesuffixs
 
 
 
@@ -59,5 +62,6 @@ include("CSV.jl")
 include("JLD2.jl")
 include("VTK.jl")
 include("PrettyPrint.jl")
+include("Tools.jl")
 
 end # module

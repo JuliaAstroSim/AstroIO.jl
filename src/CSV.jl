@@ -1,4 +1,4 @@
-function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: Star2D where N
+function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAstro) where T <: Star2D where N
     f = open("$filename.Star2D.csv", "w")
 
     uLength = getuLength(units)
@@ -31,7 +31,7 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
     return true
 end
 
-function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: Star where N
+function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAstro) where T <: Star where N
     f = open("$filename.Star.csv", "w")
 
     uLength = getuLength(units)
@@ -67,7 +67,7 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
     return true
 end
 
-function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: SPHGas2D where N
+function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAstro) where T <: SPHGas2D where N
     f = open("$filename.SPHGas2D.csv", "w")
 
     uLength = getuLength(units)
@@ -127,7 +127,7 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
     return true
 end
 
-function write_csv(filename::String, particles::Array{T,N}, units = uAstro) where T <: SPHGas where N
+function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAstro) where T <: SPHGas where N
     f = open("$filename.SPHGas.csv", "w")
 
     uLength = getuLength(units)
@@ -191,7 +191,7 @@ function write_csv(filename::String, particles::Array{T,N}, units = uAstro) wher
     return true
 end
 
-function write_csv(filename::String, data::Array, units = uAstro)
+function write_csv(filename::AbstractString, data::Array, units = uAstro)
 
     uLength = getuLength(units)
     uVel = getuVel(units)

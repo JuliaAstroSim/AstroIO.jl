@@ -242,7 +242,7 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     return data
 end
 
-function read_gadget2(filename::String)
+function read_gadget2(filename::AbstractString)
     f = open(filename, "r")
     @info "Reading data from $filename"
     
@@ -341,7 +341,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     NumTotal = sum(header.npart)
     temp = 4 * NumTotal * 3
 
-    @info "  Writing Position"
+    # Position
     write(f, Int32(temp))
     for type in GadgetTypes
         for p in data
@@ -354,7 +354,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     end
     write(f, Int32(temp))
 
-    @info "  Writing Velocity"
+    # Velocity
     write(f, Int32(temp))
     for type in GadgetTypes
         for p in data
@@ -367,7 +367,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     end
     write(f, Int32(temp))
 
-    @info "  Writing ID"
+    # ID
     temp = 4 * NumTotal
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -379,7 +379,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     end
     write(f, Int32(temp))
 
-    @info "  Writing Mass"
+    # Mass
     temp = 0
     for i in 1:6
         if header.mass[i] == 0.0 && header.npart[i] != 0
@@ -407,7 +407,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     # Write Gas
     if header.npart[1] > 0 && header.flag_entropy_instead_u > 0
         temp = header.npart[1] * 4
-        @info "  Writing Entropy"
+        # Entropy
         write(f, Int32(temp))
         for p in data
             if p.Collection == GAS()
@@ -416,7 +416,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         end
         write(f, Int32(temp))
 
-        @info "  Writing Density"
+        # Density
         write(f, Int32(temp))
         for p in data
             if p.Collection == GAS()
@@ -425,7 +425,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         end
         write(f, Int32(temp))
 
-        @info "  Writing Hsml"
+        # Hsml
         write(f, Int32(temp))
         for p in data
             if p.Collection == GAS()
@@ -437,32 +437,26 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     flush(f)
 end
 
-function write_gadget2(filename::String, header::HeaderGadget2, data::Array)
+function write_gadget2(filename::AbstractString, header::HeaderGadget2, data::Array)
     f = open(filename, "w")
 
-    @info "Writing Header"
     write_gadget2_header(f, header)
 
-    @info "Writing Particle Data"
     write_gadget2_particle(f, header, data)
 
     close(f)
-    @info "Data saved"
     return true
 end
 
-function write_gadget2(filename::String, data::Array)
+function write_gadget2(filename::AbstractString, data::Array)
     f = open(filename, "w")
 
-    @info "Generate and writing Header"
     header = generate_gadget2_header(data)
     write_gadget2_header(f, header)
 
-    @info "Writing Particle Data"
     write_gadget2_particle(f, header, data)
 
     close(f)
-    @info "Data saved"
     return true
 end
 
@@ -475,7 +469,6 @@ function load(s::Stream{format"Gadget2"})
 end
 
 function load(f::File{format"Gadget2"})
-    @info "Loading with FileIO"
     open(f) do s
         header, data = load(s)
     end
@@ -487,7 +480,6 @@ function save(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::Array)
 end
 
 function save(f::File{format"Gadget2"}, header::HeaderGadget2, data::Array)
-    @info "Writing with FileIO"
     open(f, "w") do s
         save(s, header, data)
     end

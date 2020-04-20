@@ -52,6 +52,14 @@ end
     @test length(d) == 10
 end
 
+@testset "Tools" begin
+    f = open("test_renamesuffixs.test", "w")
+    close(f)
+    
+    renamesuffixs(pwd(), "test_rename", ".ok")
+
+    @test isfile("test_renamesuffixs.ok")
+end
 
 #=
 include("AstroIO.jl\\src\\AstroIO.jl"); using .AstroIO

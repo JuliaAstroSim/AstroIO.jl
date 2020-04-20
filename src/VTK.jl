@@ -1,4 +1,4 @@
-function write_vtk_3d(filename::String, header::HeaderGadget2, data::Dict, units = uAstro)
+function write_vtk_3d(filename::AbstractString, header::HeaderGadget2, data::Dict, units = uAstro)
     uLength, uTime, uCurrent, uTemperature, uLuminosity, uMass, uAmount = getunits(units)
 
     # Preparing data
@@ -23,11 +23,11 @@ function write_vtk_3d(filename::String, header::HeaderGadget2, data::Dict, units
     return vtk_save(vtkfile)
 end
 
-function write_vtk_2d(filename::String, header::HeaderGadget2, data::Dict, units = uAstro)
+function write_vtk_2d(filename::AbstractString, header::HeaderGadget2, data::Dict, units = uAstro)
     
 end
 
-function write_vtk(filename::String, header::HeaderGadget2, data::Dict, units = uAstro)
+function write_vtk(filename::AbstractString, header::HeaderGadget2, data::Dict, units = uAstro)
     if typeof(first(Iterators.flatten(values(data))).Pos) <: AbstractPoint3D
         write_vtk_3d(filename, header, data, units)
     else
@@ -35,6 +35,6 @@ function write_vtk(filename::String, header::HeaderGadget2, data::Dict, units = 
     end
 end
 
-function read_vtk(filename::String)
+function read_vtk(filename::AbstractString)
 
 end

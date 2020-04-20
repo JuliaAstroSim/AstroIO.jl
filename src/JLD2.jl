@@ -1,19 +1,19 @@
-function write_gadget2_jld(filename::String, header::HeaderGadget2, data::Array)
+function write_gadget2_jld(filename::AbstractString, header::HeaderGadget2, data::Array)
     save(filename, Dict("header" => header, "data" => data))
     return true
 end
 
-function read_gadget2_jld(filename::String)
+function read_gadget2_jld(filename::AbstractString)
     header, data = load(filename, "header", "data")
     return header, data
 end
 
-function write_jld(filename::String, data::Array)
+function write_jld(filename::AbstractString, data::Array)
     save(filename, Dict("data" => data))
     return true
 end
 
-function read_jld(filename::String)
+function read_jld(filename::AbstractString)
     data = load(filename, "data")
     return data
 end
