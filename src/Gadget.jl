@@ -134,7 +134,6 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     if temp1 != temp2
         error("Wrong location symbol while reading positions!\n")
     end
-    @info "Position loaded"
 
     # Read velocities
     temp1 = read(f, Int32)
@@ -148,7 +147,6 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     if temp1 != temp2
         error("Wrong location symbol while reading velocities!\n")
     end
-    @info "Velocity loaded"
 
     # Read IDs
     temp1 = read(f, Int32)
@@ -159,7 +157,6 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     if temp1 != temp2
         error("Wrong location symbol while reading IDs!\n")
     end
-    @info "ID loaded"
 
     # Read masses
     read_mass_flag = false
@@ -171,7 +168,6 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     end
 
     if read_mass_flag
-        @info "Reading mass from file"
         temp1 = read(f, Int32)
     end
 
@@ -196,7 +192,6 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
             error("Wrong location symbol while reading masses!\n")
         end
     end
-    @info "Mass loaded"
 
     # Read Gas Internal Energy Block
     NumGas = header.npart[1]
@@ -210,7 +205,6 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
         if temp1 != temp2
             error("Wrong location symbol while reading Entropy!\n")
         end
-        @info "Entropy loaded"
 
         # Read Density
         if !eof(f)
@@ -223,7 +217,6 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
                 error("Wrong location symbol while reading Density!\n")
             end
         end
-        @info "Density loaded"
 
         # Read Hsml
         if !eof(f)
@@ -236,7 +229,6 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
                 error("Wrong location symbol while reading Hsml!\n")
             end
         end
-        @info "Hsml loaded"
     end
     
     return data
@@ -244,12 +236,9 @@ end
 
 function read_gadget2(filename::AbstractString)
     f = open(filename, "r")
-    @info "Reading data from $filename"
     
-    @info "Reading Header"
     header = read_gadget2_header(f)
 
-    @info "Reading Data"
     data = read_gadget2_particle(f, header)
 
     close(f)

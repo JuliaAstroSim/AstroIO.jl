@@ -246,7 +246,6 @@ function write_csv(filename::AbstractString, data::Array, units = uAstro)
             
         close(f)
     end
-        
-    @info "Data saved to $filename.csv"
+
     return true
 end
