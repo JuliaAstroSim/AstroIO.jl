@@ -2,8 +2,11 @@ function renamesuffixs(folder::AbstractString, namebase::AbstractString, suffix:
     files = readdir(folder)
     for oldname in files
         if startswith(oldname, namebase)
-            body = first(splitext(oldname))
-            mv(joinpath(folder, oldname), joinpath(folder, string(body, suffix)))
+            s = splitext(oldname)
+            if last(s) != suffix
+                body = first(s)
+                mv(joinpath(folder, oldname), joinpath(folder, string(body, suffix)))
+            end
         end
     end
 end
