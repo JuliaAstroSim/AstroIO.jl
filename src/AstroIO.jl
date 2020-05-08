@@ -3,7 +3,7 @@ module AstroIO
 __precompile__(true)
 
 using Unitful, UnitfulAstro
-using FileIO, JLD2
+using FileIO, JLD2, HDF5
 using WriteVTK
 using StaticArrays
 using IterTools
@@ -43,6 +43,12 @@ export
     # JLD2
     read_jld, write_jld,
 
+    # HDF5
+    read_hdf, write_hdf,
+    read_hdf_header,
+    read_hdf_pos,
+    read_hdf_particles,
+
     # Tools
     renamesuffixs
 
@@ -60,6 +66,7 @@ struct jld2 <: AbstractOutputType end
 include("Gadget.jl")
 include("CSV.jl")
 include("JLD2.jl")
+include("HDF5.jl")
 include("VTK.jl")
 include("PrettyPrint.jl")
 include("Tools.jl")
