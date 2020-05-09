@@ -4,11 +4,11 @@ __precompile__(true)
 
 using Unitful, UnitfulAstro
 using FileIO, JLD2, HDF5
-using WriteVTK
 using StaticArrays
 using IterTools
 using Printf
 using Distributed
+using ProgressMeter
 
 using PhysicalParticles
 
@@ -34,9 +34,6 @@ export
     read_gadget2, write_gadget2,
     read_gadget2_jld, write_gadget2_jld,
 
-    # VTK
-    write_vtk,
-
     # CSV
     write_csv,
 
@@ -48,6 +45,9 @@ export
     read_hdf_header,
     read_hdf_pos,
     read_hdf_particles,
+
+    # Houdini
+    write_houdini,
 
     # Tools
     renamesuffixs
@@ -67,7 +67,7 @@ include("Gadget.jl")
 include("CSV.jl")
 include("JLD2.jl")
 include("HDF5.jl")
-include("VTK.jl")
+include("Houdini.jl")
 include("PrettyPrint.jl")
 include("Tools.jl")
 
