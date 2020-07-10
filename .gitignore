@@ -4,3 +4,4 @@ test/testcsv*
 test/testjld*
 test/testGadgetHeaderGeneration.g2
 test/test_renamesuffixs.ok
+Manifest.toml

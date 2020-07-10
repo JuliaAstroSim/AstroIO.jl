@@ -1,7 +1,5 @@
 module AstroIO
 
-__precompile__(true)
-
 using Unitful, UnitfulAstro
 using FileIO, JLD2, HDF5
 using StaticArrays
@@ -9,6 +7,8 @@ using IterTools
 using Printf
 using Distributed
 using ProgressMeter
+using Setfield
+using BangBang
 
 using PhysicalParticles
 
@@ -34,6 +34,9 @@ export
     read_gadget2, write_gadget2,
     read_gadget2_jld, write_gadget2_jld,
 
+    GadgetKeys,
+    GadgetTypes,
+
     # CSV
     write_csv,
 
@@ -55,6 +58,7 @@ export
 
 
 GadgetTypes = [GAS(), HALO(), DISK(), BULGE(), STAR(), BLACKHOLE()]
+GadgetKeys = [:gases, :haloes, :disks, :bulges, :stars, :blackholes]
 
 
 abstract type AbstractOutputType end

@@ -249,3 +249,20 @@ function write_csv(filename::AbstractString, data::Array, units = uAstro)
 
     return true
 end
+
+function write_csv_seperate(filename::AbstractString, data::Dict, units = uAstro)
+    for v in values(data)
+        if !isempty(v)
+            write_csv(filename, v, units)
+        end
+    end
+end
+
+function write_csv(filename::AbstractString, data::Dict, units = uAstro; seperate::Bool = true)
+    if seperate
+        a = collect(Iterators.flatten(values(data)))
+        write_csv(filename, a, units)
+    else
+        write_csv_seperate(filename, data, units)
+    end
+end

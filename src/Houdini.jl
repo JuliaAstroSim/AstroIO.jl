@@ -6,6 +6,10 @@ function write_houdini_header(f::IOStream, pos::Array{T,N}) where T<:AbstractPar
     write(f, "id,Px,Py,Pz,Vx,Vy,Vz,time\n")
 end
 
+function write_houdini_header(f::IOStream, data::Dict)
+    write_houdini_header(f, first(values(data)))
+end
+
 function write_houdini_data(f::IOStream, pos::Array{T,N}, time::Float64, units = uAstro;
                             pos_ratio = 1.0,
                             ) where T<:AbstractPoint3D where N
@@ -24,15 +28,14 @@ function write_houdini_data(f::IOStream, pos::Array{T,N}, time::Float64, units =
     flush(f)
 end
 
-function write_houdini_data(f::IOStream, particles::Array{T,N}, time::Float64, units = uAstro;
+function write_houdini_data(f::IOStream, data, time::Float64, units = uAstro;
                             pos_ratio = 1.0,
                             vel_ratio = 1.0,
-                            ) where T<:AbstractParticle3D where N
+                            )
     uLength = getuLength(units)
     uVel = getuVel(units)
 
-    # Headers
-    for p in particles
+    for p in Iterators.flatten(data)
         buffer = @sprintf(
             "%d,%f,%f,%f,%f,%f,%f,%f\n",
             p.ID,
