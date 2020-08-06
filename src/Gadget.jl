@@ -438,10 +438,12 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     # Position
     write(f, Int32(temp))
     for key in GadgetKeys
-        for p in data[key]
-            write(f, Float32(ustrip(u"kpc", p.Pos.x)))
-            write(f, Float32(ustrip(u"kpc", p.Pos.y)))
-            write(f, Float32(ustrip(u"kpc", p.Pos.z)))
+        if haskey(data, key)
+            for p in data[key]
+                write(f, Float32(ustrip(u"kpc", p.Pos.x)))
+                write(f, Float32(ustrip(u"kpc", p.Pos.y)))
+                write(f, Float32(ustrip(u"kpc", p.Pos.z)))
+            end
         end
     end
     write(f, Int32(temp))
@@ -449,10 +451,12 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     # Velocity
     write(f, Int32(temp))
     for key in GadgetKeys
-        for p in data[key]
-            write(f, Float32(ustrip(u"km/s", p.Vel.x)))
-            write(f, Float32(ustrip(u"km/s", p.Vel.y)))
-            write(f, Float32(ustrip(u"km/s", p.Vel.z)))
+        if haskey(data, key)
+            for p in data[key]
+                write(f, Float32(ustrip(u"km/s", p.Vel.x)))
+                write(f, Float32(ustrip(u"km/s", p.Vel.y)))
+                write(f, Float32(ustrip(u"km/s", p.Vel.z)))
+            end
         end
     end
     write(f, Int32(temp))
@@ -461,8 +465,10 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
     temp = 4 * NumTotal
     write(f, Int32(temp))
     for key in GadgetKeys
-        for p in data[key]
-            write(f, Int32(p.ID))
+        if haskey(data, key)
+            for p in data[key]
+                write(f, Int32(p.ID))
+            end
         end
     end
     write(f, Int32(temp))
@@ -479,9 +485,10 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         write(f, Int32(temp))
 
         for type in 1:6
-            if header.mass[type] == 0.0
+            key = GadgetKeys[type]
+            if header.mass[type] == 0.0 && haskey(data, key)
                 # if no particle, this would not be executed
-                for p in data[GadgetKeys[type]]
+                for p in data[key]
                     write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
                 end
             end
