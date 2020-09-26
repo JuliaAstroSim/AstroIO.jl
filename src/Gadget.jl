@@ -98,12 +98,12 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     uDensity = getuDensity(units)
 
     data = Dict(
-        :gases => [SPHGas(units, collection = GAS()) for i = 1:header.npart[1]],
-        :haloes => [Star(units, collection = HALO()) for i = 1:header.npart[2]],
-        :disks => [Star(units, collection = DISK()) for i = 1:header.npart[3]],
-        :bulges => [Star(units, collection = BULGE()) for i = 1:header.npart[4]],
-        :stars => [Star(units, collection = STAR()) for i = 1:header.npart[5]],
-        :blackholes => [Star(units, collection = BLACKHOLE()) for i = 1:header.npart[6]],
+        :gases => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
+        :haloes => [Star(units, collection = HALO) for i = 1:header.npart[2]],
+        :disks => [Star(units, collection = DISK) for i = 1:header.npart[3]],
+        :bulges => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
+        :stars => [Star(units, collection = STAR) for i = 1:header.npart[5]],
+        :blackholes => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
     )
     
     # Read positions
@@ -404,7 +404,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         # Entropy
         write(f, Int32(temp))
         for p in data
-            if p.Collection == GAS()
+            if p.Collection == GAS
                 write(f, Float32(ustrip(u"J/K", p.Entropy)))
             end
         end
@@ -413,7 +413,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         # Density
         write(f, Int32(temp))
         for p in data
-            if p.Collection == GAS()
+            if p.Collection == GAS
                 write(f, Float32(ustrip(u"Msun/kpc^3", p.Density) / 1.0e10))
             end
         end
@@ -422,7 +422,7 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         # Hsml
         write(f, Int32(temp))
         for p in data
-            if p.Collection == GAS()
+            if p.Collection == GAS
                 write(f, Float32(ustrip(u"kpc", p.Hsml)))
             end
         end
@@ -550,6 +550,7 @@ function write_gadget2(filename::AbstractString, data)
 end
 
 # FileIO API
+import FileIO: Stream, File
 
 function load(s::Stream{format"Gadget2"}, units = uAstro)
     header = read_gadget2_header(s)
@@ -572,5 +573,10 @@ function save(f::File{format"Gadget2"}, header::HeaderGadget2, data::Array)
     open(f, "w") do s
         save(s, header, data)
     end
-    return true
+end
+
+function save(f::File{format"Gadget2"}, header::HeaderGadget2, data::Dict)
+    open(f, "w") do s
+        save(s, header, reduce(vcat, values(data)))
+    end
 end

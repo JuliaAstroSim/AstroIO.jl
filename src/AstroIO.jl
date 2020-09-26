@@ -13,7 +13,6 @@ using BangBang
 using PhysicalParticles
 
 import Base: show, write
-import FileIO: load, save
 
 export
     # Base
@@ -23,9 +22,6 @@ export
         gadget2,
         hdf5,
         jld2,
-
-    # FileIO
-    load, save,
 
     # Gadget2
     HeaderGadget2,
@@ -57,7 +53,7 @@ export
 
 
 
-GadgetTypes = [GAS(), HALO(), DISK(), BULGE(), STAR(), BLACKHOLE()]
+GadgetTypes = [GAS, HALO, DISK, BULGE, STAR, BLACKHOLE]
 GadgetKeys = [:gases, :haloes, :disks, :bulges, :stars, :blackholes]
 
 

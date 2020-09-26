@@ -5,21 +5,21 @@ using PhysicalParticles
 
 using AstroIO
 
-header, data = read_gadget2("gassphere_littleendian.g2")
+header, data = read_gadget2("gassphere_littleendian.gadget2")
 
 @testset "Gadget" begin
     @test countdata(data) == 1472
 
-    @test write_gadget2("testGadget.g2", header, data)
+    @test write_gadget2("testGadget.gadget2", header, data)
 
-    @test write_gadget2("testGadgetHeaderGeneration.g2", data)
+    @test write_gadget2("testGadgetHeaderGeneration.gadget2", data)
 end
 
 #@testset "FileIO" begin
-#    h, d = load("gassphere_littleendian.g2")
+#    h, d = load("gassphere_littleendian.gadget2")
 #    @test countdata(d) == 1472
 #
-#    @test save("testFileIO.g2", h, d)
+#    @test save("testFileIO.gadget2", h, d)
 #end
 
 @testset "CSV" begin
@@ -64,9 +64,9 @@ end
 #=
 include("AstroIO.jl\\src\\AstroIO.jl"); using .AstroIO
 
-h, d = read_gadget2("AstroIO.jl\\test\\gassphere_littleendian.g2")
-write_gadget2("AstroIO.jl\\test\\testGadget.g2", h, d)
+h, d = read_gadget2("AstroIO.jl\\test\\gassphere_littleendian.gadget2")
+write_gadget2("AstroIO.jl\\test\\testGadget.gadget2", h, d)
 
-h, d = load("AstroIO.jl\\test\\gassphere_littleendian.g2")
-save("AstroIO.jl\\test\\testFileIO.g2", h, d)
+h, d = load("AstroIO.jl\\test\\gassphere_littleendian.gadget2")
+save("AstroIO.jl\\test\\testFileIO.gadget2", h, d)
 =#

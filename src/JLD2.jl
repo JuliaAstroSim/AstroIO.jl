@@ -22,7 +22,7 @@ end
 include("AstroIO.jl/src/AstroIO.jl")
 using .AstroIO
 
-h,d = read_gadget2("AstroIO.jl/test/gassphere_littleendian.g2")
+h,d = read_gadget2("AstroIO.jl/test/gassphere_littleendian.gadget2")
 
 write_jld("temp/jldtest.jld2", d)
 
