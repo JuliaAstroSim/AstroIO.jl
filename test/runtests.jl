@@ -8,11 +8,16 @@ using AstroIO
 header, data = read_gadget2("gassphere_littleendian.gadget2")
 
 @testset "Gadget" begin
+    result = print(header)
+    @test isnothing(result)
+
     @test countdata(data) == 1472
 
     @test write_gadget2("testGadget.gadget2", header, data)
 
     @test write_gadget2("testGadgetHeaderGeneration.gadget2", data)
+
+    @test write_gadget2("testGadgetArray.gadget2", data.gases)
 end
 
 #@testset "FileIO" begin
