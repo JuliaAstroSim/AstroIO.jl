@@ -22,18 +22,22 @@ using AstroIO
 
 ### Gadget2
 
+Suffixes `gadget2`, `Gadget2`, `GADGET2` are supported
+
 ```julia
-header, data = read_gadget2("snapshot.g2")
 header, data = read_gadget2("snapshot.gadget2")
 
-write_gadget2("output.g2")
+write_gadget2("output.Gadget2", header, data)
+
+# If only data provided, a default header would be generated
+write_gadget2("output.GADGET2", data)
 ```
 
 ### Use FileIO interfaces
 
 ```julia
-header, data = load("snapshot.g2")
-header, data = load("snapshot.gadget2)
+header, data = load("snapshot.gadget2")
+save("FileIO.gadget2", header, data)
 ```
 
 ### Output CSV

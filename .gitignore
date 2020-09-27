@@ -5,3 +5,6 @@ test/testjld*
 test/testGadgetHeaderGeneration.g2
 test/test_renamesuffixs.ok
 Manifest.toml
+test/test_renamesuffixs.test
+test/testGadget.gadget2
+test/testGadgetHeaderGeneration.gadget2

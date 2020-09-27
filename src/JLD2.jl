@@ -1,20 +1,20 @@
 function write_gadget2_jld(filename::AbstractString, header::HeaderGadget2, data)
-    save(filename, Dict("header" => header, "data" => data))
+    FileIO.save(filename, Dict("header" => header, "data" => data))
     return true
 end
 
 function read_gadget2_jld(filename::AbstractString)
-    header, data = load(filename, "header", "data")
+    header, data = FileIO.load(filename, "header", "data")
     return header, data
 end
 
 function write_jld(filename::AbstractString, data)
-    save(filename, Dict("data" => data))
+    FileIO.save(filename, Dict("data" => data))
     return true
 end
 
 function read_jld(filename::AbstractString)
-    data = load(filename, "data")
+    data = FileIO.load(filename, "data")
     return data
 end
 
