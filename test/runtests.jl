@@ -18,6 +18,9 @@ header, data = read_gadget2("gassphere_littleendian.gadget2")
     @test write_gadget2("testGadgetHeaderGeneration.gadget2", data)
 
     @test write_gadget2("testGadgetArray.gadget2", data.gases)
+
+    h, d = read_gadget2("gadget2.format2")
+    @test h.npart[1] == 1994
 end
 
 #@testset "FileIO" begin

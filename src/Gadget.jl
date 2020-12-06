@@ -89,24 +89,7 @@ function read_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}})
     return header
 end
 
-function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
-    NumTotal = sum(header.npart)
-
-    uLength = getuLength(units)
-    uVel = getuVel(units)
-    uMass = getuMass(units)
-    uDensity = getuDensity(units)
-
-    data = Dict(
-        :gases => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
-        :haloes => [Star(units, collection = HALO) for i = 1:header.npart[2]],
-        :disks => [Star(units, collection = DISK) for i = 1:header.npart[3]],
-        :bulges => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
-        :stars => [Star(units, collection = STAR) for i = 1:header.npart[5]],
-        :blackholes => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
-    )
-    
-    # Read positions
+function read_POS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uLength::Units)
     temp1 = read(f, Int32)
     for key in GadgetKeys
         d = data[key]
@@ -121,8 +104,9 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     if temp1 != temp2
         error("Wrong location symbol while reading positions!\n")
     end
+end
 
-    # Read velocities
+function read_VEL!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uVel::Units)
     temp1 = read(f, Int32)
     for key in GadgetKeys
         d = data[key]
@@ -137,8 +121,9 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     if temp1 != temp2
         error("Wrong location symbol while reading velocities!\n")
     end
+end
 
-    # Read IDs
+function read_ID!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict)
     temp1 = read(f, Int32)
     for key in GadgetKeys
         d = data[key]
@@ -150,8 +135,9 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     if temp1 != temp2
         error("Wrong location symbol while reading IDs!\n")
     end
+end
 
-    # Read masses
+function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, header::HeaderGadget2, uMass::Units)
     read_mass_flag = false
     for i in header.mass
         if i == 0.0
@@ -168,15 +154,14 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
         d = data[GadgetKeys[type]]
         if header.mass[type] == 0.0 # read from file
             for i in 1:length(d)
-                d[i] = setproperties!!(d[i], Mass = read(f, Float32) * 1.0e10uMass)
+                d[i] = setproperties!!(d[i], Mass = read(f, Float32) * 1.0e10 * uMass)
             end
         else # set using header
             for i in 1:length(d)
-                d[i] = setproperties!!(d[i], Mass = header.mass[type] * 1.0e10uMass)
+                d[i] = setproperties!!(d[i], Mass = header.mass[type] * 1.0e10 * uMass)
             end
         end
     end
-        
         
     if read_mass_flag
         temp2 = read(f, Int32)
@@ -184,56 +169,130 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
             error("Wrong location symbol while reading masses!\n")
         end
     end
+end
+
+function read_Entropy!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas::Int32, uEntropy::Units)
+    temp1 = read(f, Int32)
+    for i in 1:NumGas
+        d[i] = setproperties!!(d[i], Entropy = read(f, Float32) * 1.0 * uEntropy)
+    end
+    temp2 = read(f, Int32)
+    if temp1 != temp2
+        error("Wrong location symbol while reading Entropy!\n")
+    end
+end
+
+function read_Density!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas::Int32, uDensity::Units)
+    temp1 = read(f, Int32)
+    for i in 1:NumGas
+        d[i] = setproperties!!(d[i], Density = read(f, Float32) * 10e10uDensity)
+    end
+    temp2 = read(f, Int32)
+    if temp1 != temp2
+        error("Wrong location symbol while reading Density!\n")
+    end
+end
+
+function read_HSML!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas::Int32, uLength::Units)
+    temp1 = read(f, Int32)
+    for i in 1:NumGas
+        d[i] = setproperties!!(d[i], Hsml = read(f, Float32) * 1.0 * uLength)
+    end
+    temp2 = read(f, Int32)
+    if temp1 != temp2
+        error("Wrong location symbol while reading Hsml!\n")
+    end
+end
+
+function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
+    data = Dict(
+        :gases => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
+        :haloes => [Star(units, collection = HALO) for i = 1:header.npart[2]],
+        :disks => [Star(units, collection = DISK) for i = 1:header.npart[3]],
+        :bulges => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
+        :stars => [Star(units, collection = STAR) for i = 1:header.npart[5]],
+        :blackholes => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
+    )
+    
+    read_POS!(f, data, getuLength(units))
+    read_VEL!(f, data, getuVel(units))
+    read_ID!(f, data)
+    read_MASS!(f, data, header, getuMass(units))
 
     # Read Gas Internal Energy Block
     NumGas = header.npart[1]
-    if header.npart[1] > 0 && header.flag_entropy_instead_u > 0 && !eof(f)
+    if NumGas > 0 && header.flag_entropy_instead_u > 0 && !eof(f)
         d = data.gases
 
-        # Read Entropy
-        temp1 = read(f, Int32)
-        for i in 1:NumGas
-            d[i] = setproperties!!(d[i], Entropy = read(f, Float32) * 1.0 * getuEngropy(units))
-        end
-        temp2 = read(f, Int32)
-        if temp1 != temp2
-            error("Wrong location symbol while reading Entropy!\n")
+        if !eof(f)
+            read_Entropy!(f, data.gases, NumGas, getuEntropy(units))
         end
 
-        # Read Density
         if !eof(f)
-            temp1 = read(f, Int32)
-            for i in 1:NumGas
-                d[i] = setproperties!!(d[i], Density = read(f, Float32) * 10e10uDensity)
-            end
-            temp2 = read(f, Int32)
-            if temp1 != temp2
-                error("Wrong location symbol while reading Density!\n")
-            end
+            read_Density!(f, data.gases, NumGas, getuDensity(units))
         end
 
-        # Read Hsml
         if !eof(f)
-            temp1 = read(f, Int32)
-            for i in 1:NumGas
-                d[i] = setproperties!!(d[i], Hsml = read(f, Float32) * 1.0 * uLength)
-            end
-            temp2 = read(f, Int32)
-            if temp1 != temp2
-                error("Wrong location symbol while reading Hsml!\n")
-            end
+            read_HSML!(f, data.gases, NumGas, getuLength(units))
         end
     end
     
     return data
 end
 
+function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
+    NumGas = header.npart[1]
+
+    data = Dict(
+        :gases => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
+        :haloes => [Star(units, collection = HALO) for i = 1:header.npart[2]],
+        :disks => [Star(units, collection = DISK) for i = 1:header.npart[3]],
+        :bulges => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
+        :stars => [Star(units, collection = STAR) for i = 1:header.npart[5]],
+        :blackholes => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
+    )
+
+    while !eof(f)
+        temp1 = read(f, Int32)
+        name = String(read(f, 4))
+        temp2 = read(f, Int32)
+        skippoint = read(f, Int32)
+        
+        if name == "POS "
+            read_POS!(f, data, getuLength(units))
+        elseif name == "VEL "
+            read_VEL!(f, data, getuVel(units))
+        elseif name == "ID  "
+            read_ID!(f, data)
+        elseif name == "MASS"
+            read_MASS!(f, data, header, getuMass(units))
+        elseif name == "RHO "
+            read_Density!(f, data.gases, NumGas, getuDensity(units))
+        elseif name == "HSML"
+            read_HSML!(f, data.gases, NumGas, getuLength(units))
+        end
+    end
+
+    return data
+end
+
 function read_gadget2(filename::AbstractString, units = uAstro)
     f = open(filename, "r")
-    
-    header = read_gadget2_header(f)
 
-    data = read_gadget2_particle(f, header, units)
+    temp = read(f, Int32)
+    if temp == 256
+        seekstart(f)
+        header = read_gadget2_header(f)
+        data = read_gadget2_particle(f, header, units)
+    elseif temp == 8 # Format 2
+        name = String(read(f, 4))
+        temp1 = read(f, Int32)
+        temp2 = read(f, Int32)
+        header = read_gadget2_header(f)
+        data = read_gadget2_particle_format2(f, header, units)
+    else
+        error("Unsupported Gadget2 Format!")
+    end
 
     close(f)
 
