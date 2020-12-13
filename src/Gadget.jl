@@ -299,6 +299,10 @@ function read_gadget2(filename::AbstractString, units = uAstro)
     return header, data
 end
 
+function read_gadget2_block()
+    
+end
+
 # Write
 
 function count_gadget_types(data::Array{T,N}) where T<:AbstractParticle where N
@@ -390,11 +394,8 @@ function write_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}}, header
     flush(f)
 end
 
-function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data::Array)
-    NumTotal = sum(header.npart)
+function write_POS(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
     temp = 4 * NumTotal * 3
-
-    # Position
     write(f, Int32(temp))
     for type in GadgetTypes
         for p in data
@@ -406,95 +407,10 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         end
     end
     write(f, Int32(temp))
-
-    # Velocity
-    write(f, Int32(temp))
-    for type in GadgetTypes
-        for p in data
-            if p.Collection == type
-                write(f, Float32(ustrip(u"km/s", p.Vel.x)))
-                write(f, Float32(ustrip(u"km/s", p.Vel.y)))
-                write(f, Float32(ustrip(u"km/s", p.Vel.z)))
-            end
-        end
-    end
-    write(f, Int32(temp))
-
-    # ID
-    temp = 4 * NumTotal
-    write(f, Int32(temp))
-    for type in GadgetTypes
-        for p in data
-            if p.Collection == type
-                write(f, Int32(p.ID))
-            end
-        end
-    end
-    write(f, Int32(temp))
-
-    # Mass
-    temp = 0
-    for i in 1:6
-        if header.mass[i] == 0.0 && header.npart[i] != 0
-            temp += header.npart[i] * 4
-        end
-    end
-
-    if temp > 0
-        write(f, Int32(temp))
-
-        for i in 1:6
-            if header.mass[i] == 0.0
-                # if no particle, this would not be executed
-                for p in data
-                    if p.Collection == GadgetTypes[i]
-                        write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
-                    end
-                end
-            end
-        end
-
-        write(f, Int32(temp))
-    end
-
-    # Write Gas
-    if header.npart[1] > 0 && header.flag_entropy_instead_u > 0
-        temp = header.npart[1] * 4
-        # Entropy
-        write(f, Int32(temp))
-        for p in data
-            if p.Collection == GAS
-                write(f, Float32(ustrip(u"J/K", p.Entropy)))
-            end
-        end
-        write(f, Int32(temp))
-
-        # Density
-        write(f, Int32(temp))
-        for p in data
-            if p.Collection == GAS
-                write(f, Float32(ustrip(u"Msun/kpc^3", p.Density) / 1.0e10))
-            end
-        end
-        write(f, Int32(temp))
-
-        # Hsml
-        write(f, Int32(temp))
-        for p in data
-            if p.Collection == GAS
-                write(f, Float32(ustrip(u"kpc", p.Hsml)))
-            end
-        end
-        write(f, Int32(temp))
-    end
-    flush(f)
 end
 
-function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data::Dict)
-    NumTotal = sum(header.npart)
+function write_POS(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
     temp = 4 * NumTotal * 3
-
-    # Position
     write(f, Int32(temp))
     for key in GadgetKeys
         if haskey(data, key)
@@ -506,8 +422,25 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         end
     end
     write(f, Int32(temp))
+end
 
-    # Velocity
+function write_VEL(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+    temp = 4 * NumTotal * 3
+    write(f, Int32(temp))
+    for type in GadgetTypes
+        for p in data
+            if p.Collection == type
+                write(f, Float32(ustrip(u"km/s", p.Vel.x)))
+                write(f, Float32(ustrip(u"km/s", p.Vel.y)))
+                write(f, Float32(ustrip(u"km/s", p.Vel.z)))
+            end
+        end
+    end
+    write(f, Int32(temp))
+end
+
+function write_VEL(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
+    temp = 4 * NumTotal * 3
     write(f, Int32(temp))
     for key in GadgetKeys
         if haskey(data, key)
@@ -519,8 +452,22 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         end
     end
     write(f, Int32(temp))
+end
 
-    # ID
+function write_ID(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+    temp = 4 * NumTotal
+    write(f, Int32(temp))
+    for type in GadgetTypes
+        for p in data
+            if p.Collection == type
+                write(f, Int32(p.ID))
+            end
+        end
+    end
+    write(f, Int32(temp))
+end
+
+function write_ID(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
     temp = 4 * NumTotal
     write(f, Int32(temp))
     for key in GadgetKeys
@@ -531,56 +478,125 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         end
     end
     write(f, Int32(temp))
+end
 
-    # Mass
-    temp = 0
+function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, header::HeaderGadget2)
     for i in 1:6
-        if header.mass[i] == 0.0 && header.npart[i] != 0
-            temp += header.npart[i] * 4
-        end
-    end
-
-    if temp > 0
-        write(f, Int32(temp))
-
-        for type in 1:6
-            key = GadgetKeys[type]
-            if header.mass[type] == 0.0 && haskey(data, key)
-                # if no particle, this would not be executed
-                for p in data[key]
+        if header.mass[i] == 0.0
+            # if no particle, this would not be executed
+            for p in data
+                if p.Collection == GadgetTypes[i]
                     write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
                 end
             end
         end
+    end
+end
 
-        write(f, Int32(temp))
+function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, header::HeaderGadget2)
+    for type in 1:6
+        key = GadgetKeys[type]
+        if header.mass[type] == 0.0 && haskey(data, key)
+            # if no particle, this would not be executed
+            for p in data[key]
+                write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
+            end
+        end
+    end
+end
+
+function write_MASS(f::Union{IOStream,Stream{format"Gadget2"}}, data, header::HeaderGadget2)
+    temp = 0
+    for i in 1:6
+        if header.mass[i] == 0.0 && header.npart[i] != 0
+            temp += header.npart[i] * 4
+        end
     end
 
-    # Write Gas
-    if header.npart[1] > 0 && header.flag_entropy_instead_u > 0
-        temp = header.npart[1] * 4
-        d = data.gases
-
-        # Entropy
+    if temp > 0
         write(f, Int32(temp))
-        for p in d
+        write_MASS_kernel(f, data, header)
+        write(f, Int32(temp))
+    end
+end
+
+function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumGas::Integer)
+    temp = NumGas * 4
+    write(f, Int32(temp))
+    for p in data
+        if p.Collection == GAS
             write(f, Float32(ustrip(u"J/K", p.Entropy)))
         end
-        write(f, Int32(temp))
+    end
+    write(f, Int32(temp))
+end
 
-        # Density
-        write(f, Int32(temp))
-        for p in d
+function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
+    temp = NumGas * 4
+    write(f, Int32(temp))
+    d = data.gases
+    for p in d
+        write(f, Float32(ustrip(u"J/K", p.Entropy)))
+    end
+    write(f, Int32(temp))
+end
+
+function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumGas::Integer)
+    temp = NumGas * 4
+    write(f, Int32(temp))
+    for p in data
+        if p.Collection == GAS
             write(f, Float32(ustrip(u"Msun/kpc^3", p.Density) / 1.0e10))
         end
-        write(f, Int32(temp))
+    end
+    write(f, Int32(temp))
+end
 
-        # Hsml
-        write(f, Int32(temp))
-        for p in d
+function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
+    temp = NumGas * 4
+    write(f, Int32(temp))
+    d = data.gases
+    for p in d
+        write(f, Float32(ustrip(u"Msun/kpc^3", p.Density) / 1.0e10))
+    end
+    write(f, Int32(temp))
+end
+
+function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumGas::Integer)
+    temp = NumGas * 4
+    write(f, Int32(temp))
+    for p in data
+        if p.Collection == GAS
             write(f, Float32(ustrip(u"kpc", p.Hsml)))
         end
-        write(f, Int32(temp))
+    end
+    write(f, Int32(temp))
+end
+
+function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
+    temp = NumGas * 4
+    write(f, Int32(temp))
+    d = data.gases
+    for p in d
+        write(f, Float32(ustrip(u"kpc", p.Hsml)))
+    end
+    write(f, Int32(temp))
+end
+
+function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data)
+    NumTotal = sum(header.npart)
+
+    write_POS(f, data, NumTotal)
+    write_VEL(f, data, NumTotal)
+    write_ID(f, data, NumTotal)
+    write_MASS(f, data, header)
+
+    # Write Gas
+    NumGas = header.npart[1]
+    if NumGas > 0 && header.flag_entropy_instead_u > 0
+        write_Entropy(f, data, NumGas)
+        write_Density(f, data, NumGas)
+        write_Hsml(f, data, NumGas)
     end
     flush(f)
 end
@@ -597,15 +613,67 @@ function write_gadget2(filename::AbstractString, header::HeaderGadget2, data)
 end
 
 function write_gadget2(filename::AbstractString, data)
+    header = generate_gadget2_header(data)
+    write_gadget2(filename, header, data)
+end
+
+function write_gadget2_format2_block(f::Union{IOStream,Stream{format"Gadget2"}}, name::String, NumBytes::Int64)
+    write(f, Int32(8))
+    write(f, name)
+    write(f, Int32(8 + NumBytes))
+    write(f, Int32(8))
+end
+
+function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, data)
     f = open(filename, "w")
 
-    header = generate_gadget2_header(data)
+    write_gadget2_format2_block(f, "HEAD", 256)
     write_gadget2_header(f, header)
 
-    write_gadget2_particle(f, header, data)
+    NumTotal = sum(header.npart)
+
+    write_gadget2_format2_block(f, "POS ", 4 * 3 * NumTotal)
+    write_POS(f, data, NumTotal)
+
+    write_gadget2_format2_block(f, "VEL ", 4 * 3 * NumTotal)
+    write_VEL(f, data, NumTotal)
+
+    write_gadget2_format2_block(f, "ID  ", 4 * NumTotal)
+    write_ID(f, data, NumTotal)
+
+    # Mass Block
+    temp = 0
+    for i in 1:6
+        if header.mass[i] == 0.0 && header.npart[i] != 0
+            temp += header.npart[i] * 4
+        end
+    end
+    if temp > 0
+        write_gadget2_format2_block(f, "MASS", temp)
+        write(f, Int32(temp))
+        write_MASS_kernel(f, data, header)
+        write(f, Int32(temp))
+    end
+
+    # Write Gas
+    NumGas = header.npart[1]
+    if NumGas > 0 && header.flag_entropy_instead_u > 0
+        #TODO Entropy
+    
+        write_gadget2_format2_block(f, "RHO ", 4 * NumGas)
+        write_Density(f, data, NumGas)
+        
+        write_gadget2_format2_block(f, "HSML", 4 * NumGas)
+        write_Hsml(f, data, NumGas)
+    end
 
     close(f)
     return true
+end
+
+function write_gadget2_format2(filename::AbstractString, data)
+    header = generate_gadget2_header(data)
+    write_gadget2_format2(filename, header, data)
 end
 
 # FileIO API

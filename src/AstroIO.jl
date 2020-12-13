@@ -30,6 +30,7 @@ export
     generate_gadget2_header,
     read_gadget2, write_gadget2,
     read_gadget2_jld, write_gadget2_jld,
+    write_gadget2_format2,
 
     GadgetKeys,
     GadgetTypes,

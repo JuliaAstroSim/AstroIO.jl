@@ -8,3 +8,5 @@ Manifest.toml
 test/test_renamesuffixs.test
 test/testGadget.gadget2
 test/testGadgetHeaderGeneration.gadget2
+test/gadget2.format2
+test/testGadgetArray.gadget2

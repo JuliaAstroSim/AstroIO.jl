@@ -5,7 +5,7 @@ using PhysicalParticles
 
 using AstroIO
 
-header, data = read_gadget2("gassphere_littleendian.gadget2")
+header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particles
 
 @testset "Gadget" begin
     result = print(header)
@@ -19,8 +19,11 @@ header, data = read_gadget2("gassphere_littleendian.gadget2")
 
     @test write_gadget2("testGadgetArray.gadget2", data.gases)
 
+    # ormat2
+    @test write_gadget2_format2("gadget2.format2", header, data)
+
     h, d = read_gadget2("gadget2.format2")
-    @test h.npart[1] == 1994
+    @test h.npart[1] == 1472
 end
 
 #@testset "FileIO" begin
