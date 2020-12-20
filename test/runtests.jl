@@ -19,11 +19,17 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
 
     @test write_gadget2("testGadgetArray.gadget2", data.gases)
 
-    # ormat2
+    # format2
     @test write_gadget2_format2("gadget2.format2", header, data)
 
     h, d = read_gadget2("gadget2.format2")
     @test h.npart[1] == 1472
+
+    pos = read_gadget2_pos("gadget2.format2")
+    @test length(pos) == 1472
+
+    pos = read_gadget2_pos("gassphere_littleendian.gadget2")
+    @test length(pos) == 1472
 end
 
 #@testset "FileIO" begin

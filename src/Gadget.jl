@@ -299,8 +299,65 @@ function read_gadget2(filename::AbstractString, units = uAstro)
     return header, data
 end
 
-function read_gadget2_block()
-    
+function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
+    NumTotal = sum(header.npart)
+    uLength = getuLength(units)
+    pos = [PVector(uLength) for i in 1:NumTotal]
+
+    temp1 = read(f, Int32)
+    for i in 1:NumTotal
+        x = read(f, Float32) * 1.0 * uLength
+        y = read(f, Float32) * 1.0 * uLength
+        z = read(f, Float32) * 1.0 * uLength
+        pos[i] = PVector(x, y, z)
+    end
+    temp2 = read(f, Int32)
+    if temp1 != temp2
+        error("Wrong location symbol while reading positions!\n")
+    end
+
+    return pos
+end
+
+function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
+    while !eof(f)
+        temp1 = read(f, Int32)
+        name = String(read(f, 4))
+        temp2 = read(f, Int32)
+        skippoint = read(f, Int32)
+        
+        if name == "POS "
+            return read_gadget2_pos_kernel(f, header, units)
+        else
+            skip(f, temp2)
+        end
+    end
+
+    @warn "\"POS \" block not found! Returning nothing"
+    return nothing
+end
+
+function read_gadget2_pos(filename::AbstractString, units = uAstro)
+    f = open(filename, "r")
+
+    temp = read(f, Int32)
+    if temp == 256
+        seekstart(f)
+        header = read_gadget2_header(f)
+        pos = read_gadget2_particle(f, header, units)
+    elseif temp == 8 # Format 2
+        name = String(read(f, 4))
+        temp1 = read(f, Int32)
+        temp2 = read(f, Int32)
+        header = read_gadget2_header(f)
+        pos = read_gadget2_pos_kernel_format2(f, header, units)
+    else
+        error("Unsupported Gadget2 Format!")
+    end
+
+    close(f)
+
+    return pos
 end
 
 # Write

@@ -32,6 +32,8 @@ export
     read_gadget2_jld, write_gadget2_jld,
     write_gadget2_format2,
 
+    read_gadget2_pos,
+
     GadgetKeys,
     GadgetTypes,
 
