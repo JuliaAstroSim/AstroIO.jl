@@ -58,7 +58,7 @@ export
 
 
 GadgetTypes = [GAS, HALO, DISK, BULGE, STAR, BLACKHOLE]
-GadgetKeys = [:gases, :haloes, :disks, :bulges, :stars, :blackholes]
+GadgetKeys = ["gases", "haloes", "disks", "bulges", "stars", "blackholes"]
 
 
 abstract type AbstractOutputType end

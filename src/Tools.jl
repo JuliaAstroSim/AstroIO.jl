@@ -5,7 +5,7 @@ function renamesuffixs(folder::AbstractString, namebase::AbstractString, suffix:
             s = splitext(oldname)
             if last(s) != suffix
                 body = first(s)
-                mv(joinpath(folder, oldname), joinpath(folder, string(body, suffix)))
+                mv(joinpath(folder, oldname), joinpath(folder, string(body, suffix)), force=true)
             end
         end
     end

@@ -206,12 +206,12 @@ end
 
 function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
     data = Dict(
-        :gases => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
-        :haloes => [Star(units, collection = HALO) for i = 1:header.npart[2]],
-        :disks => [Star(units, collection = DISK) for i = 1:header.npart[3]],
-        :bulges => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
-        :stars => [Star(units, collection = STAR) for i = 1:header.npart[5]],
-        :blackholes => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
+        "gases" => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
+        "haloes" => [Star(units, collection = HALO) for i = 1:header.npart[2]],
+        "disks" => [Star(units, collection = DISK) for i = 1:header.npart[3]],
+        "bulges" => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
+        "stars" => [Star(units, collection = STAR) for i = 1:header.npart[5]],
+        "blackholes" => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
     )
     
     read_POS!(f, data, getuLength(units))
@@ -222,18 +222,18 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     # Read Gas Internal Energy Block
     NumGas = header.npart[1]
     if NumGas > 0 && header.flag_entropy_instead_u > 0 && !eof(f)
-        d = data.gases
+        d = data["gases"]
 
         if !eof(f)
-            read_Entropy!(f, data.gases, NumGas, getuEntropy(units))
+            read_Entropy!(f, data["gases"], NumGas, getuEntropy(units))
         end
 
         if !eof(f)
-            read_Density!(f, data.gases, NumGas, getuDensity(units))
+            read_Density!(f, data["gases"], NumGas, getuDensity(units))
         end
 
         if !eof(f)
-            read_HSML!(f, data.gases, NumGas, getuLength(units))
+            read_HSML!(f, data["gases"], NumGas, getuLength(units))
         end
     end
     
@@ -244,12 +244,12 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
     NumGas = header.npart[1]
 
     data = Dict(
-        :gases => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
-        :haloes => [Star(units, collection = HALO) for i = 1:header.npart[2]],
-        :disks => [Star(units, collection = DISK) for i = 1:header.npart[3]],
-        :bulges => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
-        :stars => [Star(units, collection = STAR) for i = 1:header.npart[5]],
-        :blackholes => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
+        "gases" => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
+        "haloes" => [Star(units, collection = HALO) for i = 1:header.npart[2]],
+        "disks" => [Star(units, collection = DISK) for i = 1:header.npart[3]],
+        "bulges" => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
+        "stars" => [Star(units, collection = STAR) for i = 1:header.npart[5]],
+        "blackholes" => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
     )
 
     while !eof(f)
@@ -267,9 +267,9 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
         elseif name == "MASS"
             read_MASS!(f, data, header, getuMass(units))
         elseif name == "RHO "
-            read_Density!(f, data.gases, NumGas, getuDensity(units))
+            read_Density!(f, data["gases"], NumGas, getuDensity(units))
         elseif name == "HSML"
-            read_HSML!(f, data.gases, NumGas, getuLength(units))
+            read_HSML!(f, data["gases"], NumGas, getuLength(units))
         end
     end
 
@@ -344,7 +344,7 @@ function read_gadget2_pos(filename::AbstractString, units = uAstro)
     if temp == 256
         seekstart(f)
         header = read_gadget2_header(f)
-        pos = read_gadget2_particle(f, header, units)
+        pos = read_gadget2_pos_kernel(f, header, units)
     elseif temp == 8 # Format 2
         name = String(read(f, 4))
         temp1 = read(f, Int32)
@@ -591,7 +591,7 @@ end
 function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
     temp = NumGas * 4
     write(f, Int32(temp))
-    d = data.gases
+    d = data["gases"]
     for p in d
         write(f, Float32(ustrip(u"J/K", p.Entropy)))
     end
@@ -612,7 +612,7 @@ end
 function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
     temp = NumGas * 4
     write(f, Int32(temp))
-    d = data.gases
+    d = data["gases"]
     for p in d
         write(f, Float32(ustrip(u"Msun/kpc^3", p.Density) / 1.0e10))
     end
@@ -633,7 +633,7 @@ end
 function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
     temp = NumGas * 4
     write(f, Int32(temp))
-    d = data.gases
+    d = data["gases"]
     for p in d
         write(f, Float32(ustrip(u"kpc", p.Hsml)))
     end

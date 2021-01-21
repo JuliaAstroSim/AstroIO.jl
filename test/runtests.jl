@@ -17,7 +17,7 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
 
     @test write_gadget2("testGadgetHeaderGeneration.gadget2", data)
 
-    @test write_gadget2("testGadgetArray.gadget2", data.gases)
+    @test write_gadget2("testGadgetArray.gadget2", data["gases"])
 
     # format2
     @test write_gadget2_format2("gadget2.format2", header, data)
