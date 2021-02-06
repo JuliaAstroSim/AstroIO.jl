@@ -54,6 +54,8 @@ end
 
     data = [[Star() for i = 1:10]; [SPHGas() for i = 1:10]]
     @test write_csv("testcsvGeneral", data, nothing)
+
+    @test write_ramses("ramses.csv", gases)
 end
 
 @testset "JLD2" begin

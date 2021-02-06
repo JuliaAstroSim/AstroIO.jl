@@ -10,3 +10,4 @@ test/testGadget.gadget2
 test/testGadgetHeaderGeneration.gadget2
 test/gadget2.format2
 test/testGadgetArray.gadget2
+test/ramses.csv

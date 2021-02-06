@@ -37,6 +37,10 @@ export
     GadgetKeys,
     GadgetTypes,
 
+    # RAMSES
+    read_ramses,
+    write_ramses,
+
     # CSV
     write_csv,
 
@@ -69,6 +73,7 @@ struct jld2 <: AbstractOutputType end
 
 include("Gadget.jl")
 include("CSV.jl")
+include("RAMSES.jl")
 include("JLD2.jl")
 include("HDF5.jl")
 include("Houdini.jl")
