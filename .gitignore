@@ -11,3 +11,4 @@ test/testGadgetHeaderGeneration.gadget2
 test/gadget2.format2
 test/testGadgetArray.gadget2
 test/ramses.csv
+test/testFileIO.gadget2

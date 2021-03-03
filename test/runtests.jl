@@ -32,12 +32,12 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
     @test length(pos) == 1472
 end
 
-#@testset "FileIO" begin
-#    h, d = load("gassphere_littleendian.gadget2")
-#    @test countdata(d) == 1472
-#
-#    @test save("testFileIO.gadget2", h, d)
-#end
+@testset "FileIO" begin
+    h, d = load("gassphere_littleendian.gadget2")
+    @test countdata(d) == 1472
+
+    @test isnothing(save("testFileIO.gadget2", h, d))
+end
 
 @testset "CSV" begin
     stars2d = [Star2D() for i = 1:10]
