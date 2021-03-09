@@ -1,7 +1,7 @@
 # Header
 mutable struct HeaderGadget2
-    npart::MArray{Tuple{6},Int32,1,6} # gas, halo, disk, Bulge, star, blackholw
-    mass::MArray{Tuple{6},Float64,1,6}
+    npart::MVector{6,Int32} # gas, halo, disk, Bulge, star, blackholw
+    mass::MVector{6,Float64}
 
     time::Float64
     redshift::Float64
@@ -9,7 +9,7 @@ mutable struct HeaderGadget2
     flag_sfr::Int32
     flag_feedback::Int32
 
-    npartTotal::MArray{Tuple{6},UInt32,1,6}
+    npartTotal::MVector{6,UInt32}
 
     flag_cooling::Int32
 
@@ -23,20 +23,20 @@ mutable struct HeaderGadget2
     flag_stellarage::Int32
     flag_metals::Int32
 
-    npartTotalHighWord::MArray{Tuple{6},UInt32,1,6}
+    npartTotalHighWord::MVector{6,UInt32}
 
     flag_entropy_instead_u::Int32
 
-    fill_array::MArray{Tuple{60},UInt8,1,60}
+    fill_array::MVector{60,UInt8}
 end
 
-HeaderGadget2() = HeaderGadget2(MArray{Tuple{6},Int32}([0,0,0,0,0,0]),
-    MArray{Tuple{6},Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
+HeaderGadget2() = HeaderGadget2(MVector{6,Int32}([0,0,0,0,0,0]),
+    MVector{6,Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
     0.0, 0.0, 0, 0,
-    MArray{Tuple{6},UInt32}([0,0,0,0,0,0]),
+    MVector{6,UInt32}([0,0,0,0,0,0]),
     0, 1, 0.0, 0.3, 0.7, 0.71, 0, 0,
-    MArray{Tuple{6},UInt32}([0,0,0,0,0,0]), 0,
-    @MArray zeros(UInt8, 60))
+    MVector{6,UInt32}([0,0,0,0,0,0]), 0,
+    @MVector zeros(UInt8, 60))
 
 # Read
 
@@ -363,7 +363,7 @@ end
 # Write
 
 function count_gadget_types(data::Array{T,N}) where T<:AbstractParticle where N
-    Counts = MArray{Tuple{6},Int32}([0,0,0,0,0,0])
+    Counts = MVector{6,Int32}([0,0,0,0,0,0])
     for p in data
         index = findfirst(x->x==p.Collection, GadgetTypes)
         if !isnothing(index)
@@ -374,7 +374,7 @@ function count_gadget_types(data::Array{T,N}) where T<:AbstractParticle where N
 end
 
 function count_gadget_types(data::Dict)
-    Counts = MArray{Tuple{6},Int32}([0,0,0,0,0,0])
+    Counts = MVector{6,Int32}([0,0,0,0,0,0])
     for type in 1:6
         key = GadgetKeys[type]
         if haskey(data, key)
@@ -393,7 +393,7 @@ function generate_gadget2_header(data;
                                  nfiles::Int64 = 1)
     return HeaderGadget2(
         Counts,
-        MArray{Tuple{6},Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
+        MVector{6,Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
         time,
         redshift, 0, 0,
         counts_total,
@@ -401,8 +401,8 @@ function generate_gadget2_header(data;
         nfiles,
 
         0.0, 0.3, 0.7, 0.71, 0, 0,
-        MArray{Tuple{6},UInt32}([0,0,0,0,0,0]), 0,
-        @MArray zeros(UInt8, 60)
+        MVector{6,UInt32}([0,0,0,0,0,0]), 0,
+        @MVector zeros(UInt8, 60)
     )
 end
 
