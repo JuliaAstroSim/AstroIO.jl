@@ -205,7 +205,7 @@ function read_HSML!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas
 end
 
 function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
-    data = Dict(
+    data = Dict{String, Vector{AbstractParticle3D}}(
         "gases" => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
         "haloes" => [Star(units, collection = HALO) for i = 1:header.npart[2]],
         "disks" => [Star(units, collection = DISK) for i = 1:header.npart[3]],
