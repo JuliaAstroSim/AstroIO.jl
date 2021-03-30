@@ -30,6 +30,12 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
 
     pos = read_gadget2_pos("gassphere_littleendian.gadget2")
     @test length(pos) == 1472
+
+    h, d = read_gadget2("pot_acc.format2.gadget2", acc = true, pot = true)
+    write_gadget2_format2("pot_acc.format2.test.gadget2", h, d, acc = true, pot = true)
+    h, d = read_gadget2("pot_acc.format2.test.gadget2", acc = true, pot = true)
+    @test !iszero(norm(average(d, :Acc)))
+    @test !iszero(norm(average(d, :Potential)))
 end
 
 @testset "FileIO" begin

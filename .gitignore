@@ -12,3 +12,4 @@ test/gadget2.format2
 test/testGadgetArray.gadget2
 test/ramses.csv
 test/testFileIO.gadget2
+test/pot_acc.format2.test.gadget2

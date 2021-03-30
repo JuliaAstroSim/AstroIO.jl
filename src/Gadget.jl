@@ -204,7 +204,42 @@ function read_HSML!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas
     end
 end
 
-function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
+function read_POT!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uPot::Units)
+    temp1 = read(f, Int32)
+    for key in GadgetKeys
+        d = data[key]
+        for i in 1:length(d)
+            pot = uconvert(uPot, read(f, Float32) * 1.0e10 * u"Msun*kpc^2/Gyr^2")
+            d[i] = setproperties!!(d[i], Potential = pot)
+        end
+    end
+    temp2 = read(f, Int32)
+    if temp1 != temp2
+        error("Wrong location symbol while reading potentials\n")
+    end
+end
+
+function read_ACCE!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uAcc::Units)
+    temp1 = read(f, Int32)
+    for key in GadgetKeys
+        d = data[key]
+        for i in 1:length(d)
+            accx = uconvert(uAcc, read(f, Float32) * 1.0 * u"kpc/Gyr^2")
+            accy = uconvert(uAcc, read(f, Float32) * 1.0 * u"kpc/Gyr^2")
+            accz = uconvert(uAcc, read(f, Float32) * 1.0 * u"kpc/Gyr^2")
+            d[i] = setproperties!!(d[i], Acc = PVector(accx, accy, accz))
+        end
+    end
+    temp2 = read(f, Int32)
+    if temp1 != temp2
+        error("Wrong location symbol while reading accelerations\n")
+    end
+end
+
+function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro;
+        acc = false,
+        pot = false,
+    )
     data = Dict{String, Vector{AbstractParticle3D}}(
         "gases" => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
         "haloes" => [Star(units, collection = HALO) for i = 1:header.npart[2]],
@@ -235,6 +270,14 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
         if !eof(f)
             read_HSML!(f, data["gases"], NumGas, getuLength(units))
         end
+    end
+
+    if !eof(f) && pot
+        read_POT!(f, data, getuEnergy(units))
+    end
+
+    if !eof(f) && acc
+        read_ACCE!(f, data, getuAcc(units))
     end
     
     return data
@@ -270,20 +313,31 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
             read_Density!(f, data["gases"], NumGas, getuDensity(units))
         elseif name == "HSML"
             read_HSML!(f, data["gases"], NumGas, getuLength(units))
+        elseif name == "POT "
+            read_POT!(f, data, getuEnergy(units))
+        elseif name == "ACCE"
+            read_ACCE!(f, data, getuAcc(units))
         end
     end
 
     return data
 end
 
-function read_gadget2(filename::AbstractString, units = uAstro)
+"""
+read_gadget2(filename::AbstractString, units = uAstro; kw...)
+
+# Keywords
+- acc::Bool = false : read acceleration data if exist
+- pot::Bool = false : read potential data if exist
+"""
+function read_gadget2(filename::AbstractString, units = uAstro; kw...)
     f = open(filename, "r")
 
     temp = read(f, Int32)
     if temp == 256
         seekstart(f)
         header = read_gadget2_header(f)
-        data = read_gadget2_particle(f, header, units)
+        data = read_gadget2_particle(f, header, units; kw...)
     elseif temp == 8 # Format 2
         name = String(read(f, 4))
         temp1 = read(f, Int32)
@@ -640,6 +694,62 @@ function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumG
     write(f, Int32(temp))
 end
 
+function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+    temp = 4 * NumTotal
+    write(f, Int32(temp))
+    for type in GadgetTypes
+        for p in data
+            if p.Collection == type
+                write(f, Float32(ustrip(u"Msun*kpc^2/Gyr^2", p.Potential)))
+            end
+        end
+    end
+    write(f, Int32(temp))
+end
+
+function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
+    temp = 4 * NumTotal
+    write(f, Int32(temp))
+    for key in GadgetKeys
+        if haskey(data, key)
+            for p in data[key]
+                write(f, Float32(ustrip(u"Msun*kpc^2/Gyr^2", p.Potential)))
+            end
+        end
+    end
+    write(f, Int32(temp))
+end
+
+function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+    temp = 4 * NumTotal * 3
+    write(f, Int32(temp))
+    for type in GadgetTypes
+        for p in data
+            if p.Collection == type
+                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.x)))
+                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.y)))
+                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.z)))
+            end
+        end
+    end
+    write(f, Int32(temp))
+end
+
+function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
+    temp = 4 * NumTotal * 3
+    write(f, Int32(temp))
+    for key in GadgetKeys
+        if haskey(data, key)
+            for p in data[key]
+                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.x)))
+                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.y)))
+                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.z)))
+            end
+        end
+    end
+    write(f, Int32(temp))
+end
+
 function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data)
     NumTotal = sum(header.npart)
 
@@ -681,7 +791,18 @@ function write_gadget2_format2_block(f::Union{IOStream,Stream{format"Gadget2"}},
     write(f, Int32(8))
 end
 
-function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, data)
+"""
+write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, data; kw...)
+write_gadget2_format2(filename::AbstractString, data; kw...)
+
+# Keywords
+- acc::Bool = false : write acceleration data
+- pot::Bool = false : write potential data
+"""
+function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, data;
+        acc = false,
+        pot = false,
+    )
     f = open(filename, "w")
 
     write_gadget2_format2_block(f, "HEAD", 256)
@@ -724,13 +845,23 @@ function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, 
         write_Hsml(f, data, NumGas)
     end
 
+    if pot
+        write_gadget2_format2_block(f, "POT ", 4 * NumTotal)
+        write_POT(f, data, NumTotal)
+    end
+
+    if acc
+        write_gadget2_format2_block(f, "ACCE", 4 * 3 * NumTotal)
+        write_ACCE(f, data, NumTotal)
+    end
+
     close(f)
     return true
 end
 
-function write_gadget2_format2(filename::AbstractString, data)
+function write_gadget2_format2(filename::AbstractString, data; kw...)
     header = generate_gadget2_header(data)
-    write_gadget2_format2(filename, header, data)
+    write_gadget2_format2(filename, header, data; kw...)
 end
 
 # FileIO API
