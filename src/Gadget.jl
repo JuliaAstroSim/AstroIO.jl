@@ -36,7 +36,30 @@ HeaderGadget2() = HeaderGadget2(MVector{6,Int32}([0,0,0,0,0,0]),
     MVector{6,UInt32}([0,0,0,0,0,0]),
     0, 1, 0.0, 0.3, 0.7, 0.71, 0, 0,
     MVector{6,UInt32}([0,0,0,0,0,0]), 0,
-    @MVector zeros(UInt8, 60))
+    @MVector zeros(UInt8, 60)
+)
+
+function HeaderGadget2(data;
+        Counts = count_gadget_types(data),
+        time::Float64 = 0.0,
+        redshift::Float64 = 0.0,
+        counts_total = Counts,
+        nfiles::Int64 = 1
+    )
+    return HeaderGadget2(
+        Counts,
+        MVector{6,Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
+        time,
+        redshift, 0, 0,
+        counts_total,
+        0,
+        nfiles,
+
+        0.0, 0.3, 0.7, 0.71, 0, 0,
+        MVector{6,UInt32}([0,0,0,0,0,0]), 0,
+        @MVector zeros(UInt8, 60)
+    )
+end
 
 # Read
 
@@ -438,28 +461,6 @@ function count_gadget_types(data::Dict)
     return Counts
 end
 
-function generate_gadget2_header(data;
-                                 Counts = count_gadget_types(data),
-
-                                 time::Float64 = 0.0,
-                                 redshift::Float64 = 0.0,
-                                 counts_total = Counts,
-                                 nfiles::Int64 = 1)
-    return HeaderGadget2(
-        Counts,
-        MVector{6,Float64}([0.0,0.0,0.0,0.0,0.0,0.0]),
-        time,
-        redshift, 0, 0,
-        counts_total,
-        0,
-        nfiles,
-
-        0.0, 0.3, 0.7, 0.71, 0, 0,
-        MVector{6,UInt32}([0,0,0,0,0,0]), 0,
-        @MVector zeros(UInt8, 60)
-    )
-end
-
 function write_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2)
     temp = 256
 
@@ -750,7 +751,10 @@ function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumT
     write(f, Int32(temp))
 end
 
-function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data)
+function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data;
+        acc = false,
+        pot = false,
+    )
     NumTotal = sum(header.npart)
 
     write_POS(f, data, NumTotal)
@@ -765,23 +769,37 @@ function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, head
         write_Density(f, data, NumGas)
         write_Hsml(f, data, NumGas)
     end
+
+    if pot
+        write_POT(f, data, NumTotal)
+    end
+
+    if acc
+        write_ACCE(f, data, NumTotal)
+    end
+
     flush(f)
 end
 
-function write_gadget2(filename::AbstractString, header::HeaderGadget2, data)
+function write_gadget2(filename::AbstractString, header::HeaderGadget2, data; format2 = true, kw...)
+    if format2
+        write_gadget2_format2(filename, header, data; kw...)
+        return true
+    end
+
     f = open(filename, "w")
 
     write_gadget2_header(f, header)
 
-    write_gadget2_particle(f, header, data)
+    write_gadget2_particle(f, header, data; kw...)
 
     close(f)
     return true
 end
 
-function write_gadget2(filename::AbstractString, data)
-    header = generate_gadget2_header(data)
-    write_gadget2(filename, header, data)
+function write_gadget2(filename::AbstractString, data; kw...)
+    header = HeaderGadget2(data)
+    write_gadget2(filename, header, data; kw...)
 end
 
 function write_gadget2_format2_block(f::Union{IOStream,Stream{format"Gadget2"}}, name::String, NumBytes::Int64)
@@ -860,7 +878,7 @@ function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, 
 end
 
 function write_gadget2_format2(filename::AbstractString, data; kw...)
-    header = generate_gadget2_header(data)
+    header = HeaderGadget2(data)
     write_gadget2_format2(filename, header, data; kw...)
 end
 
