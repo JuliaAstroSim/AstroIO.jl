@@ -232,7 +232,7 @@ function read_POT!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uPot:
     for key in GadgetKeys
         d = data[key]
         for i in 1:length(d)
-            pot = uconvert(uPot, read(f, Float32) * 1.0e10 * u"Msun*kpc^2/Gyr^2")
+            pot = uconvert(uPot, read(f, Float32) * 1.0e10 * u"Msun*km^2/s^2")
             d[i] = setproperties!!(d[i], Potential = pot)
         end
     end
@@ -247,9 +247,9 @@ function read_ACCE!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uAcc
     for key in GadgetKeys
         d = data[key]
         for i in 1:length(d)
-            accx = uconvert(uAcc, read(f, Float32) * 1.0 * u"kpc/Gyr^2")
-            accy = uconvert(uAcc, read(f, Float32) * 1.0 * u"kpc/Gyr^2")
-            accz = uconvert(uAcc, read(f, Float32) * 1.0 * u"kpc/Gyr^2")
+            accx = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
+            accy = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
+            accz = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
             d[i] = setproperties!!(d[i], Acc = PVector(accx, accy, accz))
         end
     end
@@ -701,7 +701,7 @@ function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumT
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(u"Msun*kpc^2/Gyr^2", p.Potential)))
+                write(f, Float32(ustrip(u"Msun*km^2/s^2", p.Potential / 1.0e10)))
             end
         end
     end
@@ -714,7 +714,7 @@ function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTo
     for key in GadgetKeys
         if haskey(data, key)
             for p in data[key]
-                write(f, Float32(ustrip(u"Msun*kpc^2/Gyr^2", p.Potential)))
+                write(f, Float32(ustrip(u"Msun*km^2/s^2", p.Potential / 1.0e10)))
             end
         end
     end
@@ -727,9 +727,9 @@ function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, Num
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.x)))
-                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.y)))
-                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.z)))
+                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.x)))
+                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.y)))
+                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.z)))
             end
         end
     end
@@ -742,9 +742,9 @@ function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumT
     for key in GadgetKeys
         if haskey(data, key)
             for p in data[key]
-                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.x)))
-                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.y)))
-                write(f, Float32(ustrip(u"kpc/Gyr^2", p.Acc.z)))
+                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.x)))
+                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.y)))
+                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.z)))
             end
         end
     end
