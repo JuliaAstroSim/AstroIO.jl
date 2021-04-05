@@ -232,7 +232,7 @@ function read_POT!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uPot:
     for key in GadgetKeys
         d = data[key]
         for i in 1:length(d)
-            pot = uconvert(uPot, read(f, Float32) * 1.0e10 * u"Msun*km^2/s^2")
+            pot = uconvert(uPot, read(f, Float32) * u"km^2/s^2" * d[i].Mass)
             d[i] = setproperties!!(d[i], Potential = pot)
         end
     end
@@ -295,12 +295,20 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
         end
     end
 
-    if !eof(f) && pot
-        read_POT!(f, data, getuEnergy(units))
+    if pot
+        if eof(f)
+            error("No potential data!")
+        else
+            read_POT!(f, data, getuEnergy(units))
+        end
     end
 
-    if !eof(f) && acc
-        read_ACCE!(f, data, getuAcc(units))
+    if acc
+        if eof(f)
+            error("No acceleration data!")
+        else
+            read_ACCE!(f, data, getuAcc(units))
+        end
     end
     
     return data
@@ -701,7 +709,7 @@ function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumT
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(u"Msun*km^2/s^2", p.Potential / 1.0e10)))
+                write(f, Float32(ustrip(u"km^2/s^2", p.Potential / p.Mass)))
             end
         end
     end
@@ -714,7 +722,7 @@ function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTo
     for key in GadgetKeys
         if haskey(data, key)
             for p in data[key]
-                write(f, Float32(ustrip(u"Msun*km^2/s^2", p.Potential / 1.0e10)))
+                write(f, Float32(ustrip(u"km^2/s^2", p.Potential / p.Mass)))
             end
         end
     end
