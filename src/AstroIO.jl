@@ -57,6 +57,7 @@ export
     write_houdini,
 
     # Tools
+    renamereplace,
     renamesuffixs
 
 
