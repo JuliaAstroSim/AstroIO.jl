@@ -11,13 +11,11 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
     result = print(header)
     @test isnothing(result)
 
-    @test countdata(data) == 1472
+    @test length(data) == 1472
 
     @test write_gadget2("testGadget.gadget2", header, data)
 
     @test write_gadget2("testGadgetHeaderGeneration.gadget2", data)
-
-    @test write_gadget2("testGadgetArray.gadget2", data["gases"])
 
     # format2
     @test write_gadget2_format2("gadget2.format2", header, data)
@@ -40,7 +38,7 @@ end
 
 @testset "FileIO" begin
     h, d = load("gassphere_littleendian.gadget2")
-    @test countdata(d) == 1472
+    @test length(d) == 1472
 
     @test isnothing(save("testFileIO.gadget2", h, d))
 end
@@ -52,16 +50,10 @@ end
     stars = [Star(uAstro) for i = 1:10]
     @test write_csv("testcsvStar", stars, uAstro)
 
-    gases2d = [SPHGas2D() for i=1:10]
-    @test write_csv("testcsvSPHGas2D", gases2d, nothing)
-
-    gases = [SPHGas(uAstro) for i=1:10]
-    @test write_csv("testcsvSPHGas", gases, uAstro)
-
-    data = [[Star() for i = 1:10]; [SPHGas() for i = 1:10]]
+    data = [[Star() for i = 1:10]; [Ball() for i = 1:10]]
     @test write_csv("testcsvGeneral", data, nothing)
 
-    @test write_ramses("ramses.csv", gases)
+    @test write_ramses("ramses.csv", stars)
 end
 
 @testset "JLD2" begin

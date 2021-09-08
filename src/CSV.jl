@@ -1,73 +1,4 @@
-function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAstro) where T <: Star2D where N
-    f = open("$filename.Star2D.csv", "w")
-
-    uLength = getuLength(units)
-    uVel = getuVel(units)
-    uAcc = getuAcc(units)
-    uMass = getuMass(units)
-    uPotential = getuEnergy(units)
-
-    write(f, "#id | x y", axisunit(uLength), " | vx vy", axisunit(uVel), " | ax ay oldacc", axisunit(uAcc),
-             " | m", axisunit(uMass), " | Ti_endstep Ti_begstep GravCost | Potential", axisunit(uPotential), "\n")
-    for p in particles
-        buffer = @sprintf(
-                "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
-                p.ID,
-                ustrip(uLength, p.Pos.x),
-                ustrip(uLength, p.Pos.y),
-                ustrip(uVel, p.Vel.x),
-                ustrip(uVel, p.Vel.y),
-                ustrip(uAcc, p.Acc.x),
-                ustrip(uAcc, p.Acc.y),
-                ustrip(uMass, p.Mass),
-                p.Ti_endstep,
-                p.Ti_begstep,
-                ustrip(uPotential, p.Potential),
-            )
-        write(f, buffer)
-    end
-    
-    close(f)
-    return true
-end
-
-function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAstro) where T <: Star where N
-    f = open("$filename.Star.csv", "w")
-
-    uLength = getuLength(units)
-    uVel = getuVel(units)
-    uAcc = getuAcc(units)
-    uMass = getuMass(units)
-    uPotential = getuEnergy(units)
-
-    write(f, "#id | x y z", axisunit(uLength), " | vx vy vz", axisunit(uVel), " | ax ay az oldacc", axisunit(uAcc),
-             " | m", axisunit(uMass), " | Ti_endstep Ti_begstep GravCost | Potential", axisunit(uPotential), "\n")
-    for p in particles
-        buffer = @sprintf(
-                "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f\n",
-                p.ID,
-                ustrip(uLength, p.Pos.x),
-                ustrip(uLength, p.Pos.y),
-                ustrip(uLength, p.Pos.z),
-                ustrip(uVel, p.Vel.x),
-                ustrip(uVel, p.Vel.y),
-                ustrip(uVel, p.Vel.z),
-                ustrip(uAcc, p.Acc.x),
-                ustrip(uAcc, p.Acc.y),
-                ustrip(uAcc, p.Acc.z),
-                ustrip(uMass, p.Mass),
-                p.Ti_endstep,
-                p.Ti_begstep,
-                ustrip(uPotential, p.Potential),
-            )
-        write(f, buffer)
-    end
-    
-    close(f)
-    return true
-end
-
-function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAstro) where T <: SPHGas2D where N
+function write_csv(filename::AbstractString, particles::Union{Array{T,N}, StructArray{T,N,NT,Tu}}, units = uAstro) where T <: Star2D where N where NT where Tu
     f = open("$filename.SPHGas2D.csv", "w")
 
     uLength = getuLength(units)
@@ -127,7 +58,7 @@ function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAst
     return true
 end
 
-function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAstro) where T <: SPHGas where N
+function write_csv(filename::AbstractString, particles::Union{Array{T,N}, StructArray{T,N,NT,Tu}}, units = uAstro) where T <: Star where N where NT where Tu
     f = open("$filename.SPHGas.csv", "w")
 
     uLength = getuLength(units)
@@ -191,7 +122,7 @@ function write_csv(filename::AbstractString, particles::Array{T,N}, units = uAst
     return true
 end
 
-function write_csv(filename::AbstractString, data::Array, units = uAstro)
+function write_csv(filename::AbstractString, data::Union{Array,StructArray}, units = uAstro)
 
     uLength = getuLength(units)
     uVel = getuVel(units)
@@ -248,21 +179,4 @@ function write_csv(filename::AbstractString, data::Array, units = uAstro)
     end
 
     return true
-end
-
-function write_csv_seperate(filename::AbstractString, data::Dict, units = uAstro)
-    for v in values(data)
-        if !isempty(v)
-            write_csv(filename, v, units)
-        end
-    end
-end
-
-function write_csv(filename::AbstractString, data::Dict, units = uAstro; seperate::Bool = true)
-    if seperate
-        a = collect(Iterators.flatten(values(data)))
-        write_csv(filename, a, units)
-    else
-        write_csv_seperate(filename, data, units)
-    end
 end

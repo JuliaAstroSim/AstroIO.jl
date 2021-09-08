@@ -8,7 +8,7 @@ function write_ramses(filename::String, data, units = uAstro)
     uMass = getuMass(units)
 
     f = open(filename, "w")
-    for p in Iterators.flatten(values(data))
+    for p in data
         buffer = @sprintf(
             "%f %f %f %f %f %f %f\n",
             ustrip(uLength, p.Pos.x),

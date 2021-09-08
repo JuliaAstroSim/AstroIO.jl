@@ -112,16 +112,14 @@ function read_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}})
     return header
 end
 
-function read_POS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uLength::Units)
+function read_POS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, uLength::Units)
     temp1 = read(f, Int32)
-    for key in GadgetKeys
-        d = data[key]
-        for i in 1:length(d)
-            x = read(f, Float32) * 1.0 * uLength
-            y = read(f, Float32) * 1.0 * uLength
-            z = read(f, Float32) * 1.0 * uLength
-            d[i] = setproperties!!(d[i], Pos = PVector(x, y, z))
-        end
+    Pos = data.Pos
+    for i in 1:length(data)
+        x = read(f, Float32) * 1.0 * uLength
+        y = read(f, Float32) * 1.0 * uLength
+        z = read(f, Float32) * 1.0 * uLength
+        Pos[i] = PVector(x, y, z)
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -129,16 +127,14 @@ function read_POS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uLeng
     end
 end
 
-function read_VEL!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uVel::Units)
+function read_VEL!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, uVel::Units)
     temp1 = read(f, Int32)
-    for key in GadgetKeys
-        d = data[key]
-        for i in 1:length(d)
-            vx = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
-            vy = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
-            vz = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
-            d[i] = setproperties!!(d[i], Vel = PVector(vx, vy, vz))
-        end
+    Vel = data.Vel
+    for i in 1:length(data)
+        vx = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
+        vy = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
+        vz = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
+        Vel[i] = PVector(vx, vy, vz)
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -146,13 +142,11 @@ function read_VEL!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uVel:
     end
 end
 
-function read_ID!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict)
+function read_ID!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray)
     temp1 = read(f, Int32)
-    for key in GadgetKeys
-        d = data[key]
-        for i in 1:length(d)
-            d[i] = setproperties!!(d[i], ID = Int(read(f, UInt32)))
-        end
+    ID = data.ID
+    for i in 1:length(data)
+        ID[i] = Int(read(f, UInt32))
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -160,7 +154,7 @@ function read_ID!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict)
     end
 end
 
-function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, header::HeaderGadget2, uMass::Units)
+function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, header::HeaderGadget2, uMass::Units)
     read_mass_flag = false
     for i in header.mass
         if i == 0.0
@@ -173,16 +167,22 @@ function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, head
         temp1 = read(f, Int32)
     end
 
+    start = 1
+    tail = header.npart[1]
+    Mass = data.Mass
     for type in 1:6
-        d = data[GadgetKeys[type]]
         if header.mass[type] == 0.0 # read from file
-            for i in 1:length(d)
-                d[i] = setproperties!!(d[i], Mass = read(f, Float32) * 1.0e10 * uMass)
+            for i in start:tail
+                Mass[i] = read(f, Float32) * 1.0e10 * uMass
             end
         else # set using header
-            for i in 1:length(d)
-                d[i] = setproperties!!(d[i], Mass = header.mass[type] * 1.0e10 * uMass)
+            for i in start:tail
+                Mass[i] = header.mass[type] * 1.0e10 * uMass
             end
+        end
+        start += header.npart[type]
+        if type < 6
+            tail += header.npart[type+1]
         end
     end
         
@@ -194,10 +194,11 @@ function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, head
     end
 end
 
-function read_Entropy!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas::Int32, uEntropy::Units)
+function read_Entropy!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, NumGas::Int32, uEntropy::Units)
     temp1 = read(f, Int32)
+    Entropy = data.Entropy
     for i in 1:NumGas
-        d[i] = setproperties!!(d[i], Entropy = read(f, Float32) * 1.0 * uEntropy)
+        Entropy[i] = read(f, Float32) * 1.0 * uEntropy
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -205,10 +206,11 @@ function read_Entropy!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, Num
     end
 end
 
-function read_Density!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas::Int32, uDensity::Units)
+function read_Density!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, NumGas::Int32, uDensity::Units)
     temp1 = read(f, Int32)
+    Density = data.Density
     for i in 1:NumGas
-        d[i] = setproperties!!(d[i], Density = read(f, Float32) * 10e10uDensity)
+        Density[i] = read(f, Float32) * 10e10uDensity
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -216,10 +218,11 @@ function read_Density!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, Num
     end
 end
 
-function read_HSML!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas::Int32, uLength::Units)
+function read_HSML!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, NumGas::Int32, uLength::Units)
     temp1 = read(f, Int32)
+    HSML = data.HSML
     for i in 1:NumGas
-        d[i] = setproperties!!(d[i], Hsml = read(f, Float32) * 1.0 * uLength)
+        HSML[i] = read(f, Float32) * 1.0 * uLength
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -227,14 +230,11 @@ function read_HSML!(f::Union{IOStream,Stream{format"Gadget2"}}, d::Array, NumGas
     end
 end
 
-function read_POT!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uPot::Units)
+function read_POT!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, uPot::Units)
     temp1 = read(f, Int32)
-    for key in GadgetKeys
-        d = data[key]
-        for i in 1:length(d)
-            pot = uconvert(uPot, read(f, Float32) * u"km^2/s^2" * d[i].Mass)
-            d[i] = setproperties!!(d[i], Potential = pot)
-        end
+    Potential = data.Potential
+    for i in 1:length(data)
+        Potential[i] = uconvert(uPot, read(f, Float32) * u"km^2/s^2" * data.Mass[i])
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -242,16 +242,14 @@ function read_POT!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uPot:
     end
 end
 
-function read_ACCE!(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, uAcc::Units)
+function read_ACCE!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, uAcc::Units)
     temp1 = read(f, Int32)
-    for key in GadgetKeys
-        d = data[key]
-        for i in 1:length(d)
-            accx = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
-            accy = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
-            accz = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
-            d[i] = setproperties!!(d[i], Acc = PVector(accx, accy, accz))
-        end
+    Acc = data.Acc
+    for i in 1:length(data)
+        accx = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
+        accy = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
+        accz = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
+        Acc[i] = PVector(accx, accy, accz)
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -263,14 +261,11 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
         acc = false,
         pot = false,
     )
-    data = Dict{String, Vector{AbstractParticle3D}}(
-        "gases" => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
-        "haloes" => [Star(units, collection = HALO) for i = 1:header.npart[2]],
-        "disks" => [Star(units, collection = DISK) for i = 1:header.npart[3]],
-        "bulges" => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
-        "stars" => [Star(units, collection = STAR) for i = 1:header.npart[5]],
-        "blackholes" => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
-    )
+    data = StructArray(Star(units))
+    empty!(data)
+    for k in 1:6
+        append!(data, StructArray([Star(units, collection = GadgetTypes[k]) for i = 1:header.npart[k]]))
+    end
     
     read_POS!(f, data, getuLength(units))
     read_VEL!(f, data, getuVel(units))
@@ -283,15 +278,15 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
         d = data["gases"]
 
         if !eof(f)
-            read_Entropy!(f, data["gases"], NumGas, getuEntropy(units))
+            read_Entropy!(f, data, NumGas, getuEntropy(units))
         end
 
         if !eof(f)
-            read_Density!(f, data["gases"], NumGas, getuDensity(units))
+            read_Density!(f, data, NumGas, getuDensity(units))
         end
 
         if !eof(f)
-            read_HSML!(f, data["gases"], NumGas, getuLength(units))
+            read_HSML!(f, data, NumGas, getuLength(units))
         end
     end
 
@@ -317,14 +312,11 @@ end
 function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
     NumGas = header.npart[1]
 
-    data = Dict{String, Vector{AbstractParticle3D}}(
-        "gases" => [SPHGas(units, collection = GAS) for i = 1:header.npart[1]],
-        "haloes" => [Star(units, collection = HALO) for i = 1:header.npart[2]],
-        "disks" => [Star(units, collection = DISK) for i = 1:header.npart[3]],
-        "bulges" => [Star(units, collection = BULGE) for i = 1:header.npart[4]],
-        "stars" => [Star(units, collection = STAR) for i = 1:header.npart[5]],
-        "blackholes" => [Star(units, collection = BLACKHOLE) for i = 1:header.npart[6]],
-    )
+    data = StructArray(Star(units))
+    empty!(data)
+    for k in 1:6
+        append!(data, StructArray([Star(units, collection = GadgetTypes[k]) for i = 1:header.npart[k]]))
+    end
 
     while !eof(f)
         temp1 = read(f, Int32)
@@ -387,7 +379,7 @@ end
 function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
     NumTotal = sum(header.npart)
     uLength = getuLength(units)
-    pos = [PVector(uLength) for i in 1:NumTotal]
+    pos = StructArray(PVector(uLength) for i in 1:NumTotal)
 
     temp1 = read(f, Int32)
     for i in 1:NumTotal
@@ -450,21 +442,16 @@ end
 function count_gadget_types(data::Array{T,N}) where T<:AbstractParticle where N
     Counts = MVector{6,Int32}([0,0,0,0,0,0])
     for p in data
-        index = findfirst(x->x==p.Collection, GadgetTypes)
-        if !isnothing(index)
-            Counts[index] += 1
-        end
+        Counts[Int(p.Collection)] += 1
     end
     return Counts
 end
 
-function count_gadget_types(data::Dict)
+function count_gadget_types(data::StructArray)
     Counts = MVector{6,Int32}([0,0,0,0,0,0])
-    for type in 1:6
-        key = GadgetKeys[type]
-        if haskey(data, key)
-            Counts[type] = length(data[key])
-        end
+    Collection = data.Collection
+    for c in Collection
+        Counts[Int(c)] += 1
     end
     return Counts
 end
@@ -514,7 +501,7 @@ function write_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}}, header
     flush(f)
 end
 
-function write_POS(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+function write_POS(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, NumTotal::Integer)
     temp = 4 * NumTotal * 3
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -529,22 +516,7 @@ function write_POS(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumT
     write(f, Int32(temp))
 end
 
-function write_POS(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
-    temp = 4 * NumTotal * 3
-    write(f, Int32(temp))
-    for key in GadgetKeys
-        if haskey(data, key)
-            for p in data[key]
-                write(f, Float32(ustrip(u"kpc", p.Pos.x)))
-                write(f, Float32(ustrip(u"kpc", p.Pos.y)))
-                write(f, Float32(ustrip(u"kpc", p.Pos.z)))
-            end
-        end
-    end
-    write(f, Int32(temp))
-end
-
-function write_VEL(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+function write_VEL(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, NumTotal::Integer)
     temp = 4 * NumTotal * 3
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -559,22 +531,7 @@ function write_VEL(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumT
     write(f, Int32(temp))
 end
 
-function write_VEL(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
-    temp = 4 * NumTotal * 3
-    write(f, Int32(temp))
-    for key in GadgetKeys
-        if haskey(data, key)
-            for p in data[key]
-                write(f, Float32(ustrip(u"km/s", p.Vel.x)))
-                write(f, Float32(ustrip(u"km/s", p.Vel.y)))
-                write(f, Float32(ustrip(u"km/s", p.Vel.z)))
-            end
-        end
-    end
-    write(f, Int32(temp))
-end
-
-function write_ID(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+function write_ID(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, NumTotal::Integer)
     temp = 4 * NumTotal
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -587,25 +544,13 @@ function write_ID(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTo
     write(f, Int32(temp))
 end
 
-function write_ID(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
-    temp = 4 * NumTotal
-    write(f, Int32(temp))
-    for key in GadgetKeys
-        if haskey(data, key)
-            for p in data[key]
-                write(f, Int32(p.ID))
-            end
-        end
-    end
-    write(f, Int32(temp))
-end
-
-function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, header::HeaderGadget2)
+function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, header::HeaderGadget2)
     for i in 1:6
         if header.mass[i] == 0.0
             # if no particle, this would not be executed
+            type = GadgetTypes[i]
             for p in data
-                if p.Collection == GadgetTypes[i]
+                if p.Collection == type
                     write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
                 end
             end
@@ -613,19 +558,7 @@ function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::Arr
     end
 end
 
-function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, header::HeaderGadget2)
-    for type in 1:6
-        key = GadgetKeys[type]
-        if header.mass[type] == 0.0 && haskey(data, key)
-            # if no particle, this would not be executed
-            for p in data[key]
-                write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
-            end
-        end
-    end
-end
-
-function write_MASS(f::Union{IOStream,Stream{format"Gadget2"}}, data, header::HeaderGadget2)
+function write_MASS(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, header::HeaderGadget2)
     temp = 0
     for i in 1:6
         if header.mass[i] == 0.0 && header.npart[i] != 0
@@ -640,7 +573,7 @@ function write_MASS(f::Union{IOStream,Stream{format"Gadget2"}}, data, header::He
     end
 end
 
-function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumGas::Integer)
+function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, NumGas::Integer)
     temp = NumGas * 4
     write(f, Int32(temp))
     for p in data
@@ -651,17 +584,7 @@ function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, 
     write(f, Int32(temp))
 end
 
-function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
-    temp = NumGas * 4
-    write(f, Int32(temp))
-    d = data["gases"]
-    for p in d
-        write(f, Float32(ustrip(u"J/K", p.Entropy)))
-    end
-    write(f, Int32(temp))
-end
-
-function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumGas::Integer)
+function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, NumGas::Integer)
     temp = NumGas * 4
     write(f, Int32(temp))
     for p in data
@@ -672,17 +595,7 @@ function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, 
     write(f, Int32(temp))
 end
 
-function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
-    temp = NumGas * 4
-    write(f, Int32(temp))
-    d = data["gases"]
-    for p in d
-        write(f, Float32(ustrip(u"Msun/kpc^3", p.Density) / 1.0e10))
-    end
-    write(f, Int32(temp))
-end
-
-function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumGas::Integer)
+function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, NumGas::Integer)
     temp = NumGas * 4
     write(f, Int32(temp))
     for p in data
@@ -693,17 +606,7 @@ function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, Num
     write(f, Int32(temp))
 end
 
-function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumGas::Integer)
-    temp = NumGas * 4
-    write(f, Int32(temp))
-    d = data["gases"]
-    for p in d
-        write(f, Float32(ustrip(u"kpc", p.Hsml)))
-    end
-    write(f, Int32(temp))
-end
-
-function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, NumTotal::Integer)
     temp = 4 * NumTotal
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -716,40 +619,12 @@ function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumT
     write(f, Int32(temp))
 end
 
-function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
-    temp = 4 * NumTotal
-    write(f, Int32(temp))
-    for key in GadgetKeys
-        if haskey(data, key)
-            for p in data[key]
-                write(f, Float32(ustrip(u"km^2/s^2", p.Potential / p.Mass)))
-            end
-        end
-    end
-    write(f, Int32(temp))
-end
-
-function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::Array, NumTotal::Integer)
+function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array, StructArray}, NumTotal::Integer)
     temp = 4 * NumTotal * 3
     write(f, Int32(temp))
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.x)))
-                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.y)))
-                write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.z)))
-            end
-        end
-    end
-    write(f, Int32(temp))
-end
-
-function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::Dict, NumTotal::Integer)
-    temp = 4 * NumTotal * 3
-    write(f, Int32(temp))
-    for key in GadgetKeys
-        if haskey(data, key)
-            for p in data[key]
                 write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.x)))
                 write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.y)))
                 write(f, Float32(ustrip(u"km^2/kpc/s^2", p.Acc.z)))
@@ -825,12 +700,10 @@ write_gadget2_format2(filename::AbstractString, data; kw...)
 - acc::Bool = false : write acceleration data
 - pot::Bool = false : write potential data
 """
-function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, data;
+function write_gadget2_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data;
         acc = false,
         pot = false,
     )
-    f = open(filename, "w")
-
     write_gadget2_format2_block(f, "HEAD", 256)
     write_gadget2_header(f, header)
 
@@ -880,7 +753,14 @@ function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, 
         write_gadget2_format2_block(f, "ACCE", 4 * 3 * NumTotal)
         write_ACCE(f, data, NumTotal)
     end
+end
 
+function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, data;
+        acc = false,
+        pot = false,
+    )
+    f = open(filename, "w")
+    write_gadget2_format2(f, header, data; acc, pot)
     close(f)
     return true
 end
@@ -888,6 +768,7 @@ end
 function write_gadget2_format2(filename::AbstractString, data; kw...)
     header = HeaderGadget2(data)
     write_gadget2_format2(filename, header, data; kw...)
+    return true
 end
 
 # FileIO API
@@ -905,19 +786,14 @@ function load(f::File{format"Gadget2"})
     end
 end
 
-function save(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::Array)
-    write_gadget2_header(s, header)
+function save(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::Union{Array, StructArray})
+    #write_gadget2_header(s, header)
+    #write_gadget2_particle(s, header, data)
     write_gadget2_particle(s, header, data)
 end
 
-function save(f::File{format"Gadget2"}, header::HeaderGadget2, data::Array)
+function save(f::File{format"Gadget2"}, header::HeaderGadget2, data::Union{Array, StructArray})
     open(f, "w") do s
         save(s, header, data)
-    end
-end
-
-function save(f::File{format"Gadget2"}, header::HeaderGadget2, data::Dict)
-    open(f, "w") do s
-        save(s, header, reduce(vcat, values(data)))
     end
 end

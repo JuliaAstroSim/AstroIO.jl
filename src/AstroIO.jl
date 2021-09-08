@@ -1,5 +1,6 @@
 module AstroIO
 
+using Reexport
 using Unitful, UnitfulAstro
 using FileIO, JLD2, HDF5
 using StaticArrays
@@ -9,8 +10,9 @@ using Distributed
 using ProgressMeter
 using Setfield
 using BangBang
+using StructArrays
 
-using PhysicalParticles
+@reexport using PhysicalParticles
 
 import Base: show, write
 import Unitful: Units
