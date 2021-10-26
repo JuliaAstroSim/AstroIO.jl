@@ -368,7 +368,7 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
         elseif name == "HSML"
             read_HSML!(f, data[data.Collection.==GAS], NumGas, getuLength(units))
         elseif name == "POT "
-            read_POT!(f, data, getuEnergy(units))
+            read_POT!(f, data, getuEnergyUnit(units))
         elseif name == "ACCE"
             read_ACCE!(f, data, getuAcc(units))
         end
@@ -643,7 +643,7 @@ function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::Union{Array
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(u"km^2/s^2", p.Potential / p.Mass)))
+                write(f, Float32(ustrip(u"km^2/s^2", p.Potential)))
             end
         end
     end
