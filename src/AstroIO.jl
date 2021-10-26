@@ -38,6 +38,7 @@ export
 
     GadgetKeys,
     GadgetTypes,
+    uGadget2,
 
     # RAMSES
     read_ramses,
