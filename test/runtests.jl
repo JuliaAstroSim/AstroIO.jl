@@ -35,7 +35,7 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
     uPot = getuEnergyUnit(uGadget2)
     uMass = getuMass(uGadget2)
 
-    # @test 1.0*getuMass(uGadget2) == 1e10u"Msun"  # Still have to understand how to check this
+    @test 1.0*uMass == 1e10u"Msun"
     @test uAcc == u"km^2*kpc^-1*s^-2"
     @test uPot == u"km^2*s^-2"
 
