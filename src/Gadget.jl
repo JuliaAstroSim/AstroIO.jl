@@ -275,18 +275,18 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     # Read Gas Internal Energy Block
     NumGas = header.npart[1]
     if NumGas > 0 && header.flag_entropy_instead_u > 0 && !eof(f)
-        d = data["gases"]
+        d = data[data.Collection .== GAS]
 
         if !eof(f)
-            read_Entropy!(f, data, NumGas, getuEntropy(units))
+            read_Entropy!(f, d, NumGas, getuEntropy(units))
         end
 
         if !eof(f)
-            read_Density!(f, data, NumGas, getuDensity(units))
+            read_Density!(f, d, NumGas, getuDensity(units))
         end
 
         if !eof(f)
-            read_HSML!(f, data, NumGas, getuLength(units))
+            read_HSML!(f, d, NumGas, getuLength(units))
         end
     end
 
@@ -333,9 +333,9 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
         elseif name == "MASS"
             read_MASS!(f, data, header, getuMass(units))
         elseif name == "RHO "
-            read_Density!(f, data["gases"], NumGas, getuDensity(units))
+            read_Density!(f, data[data.Collection.==GAS], NumGas, getuDensity(units))
         elseif name == "HSML"
-            read_HSML!(f, data["gases"], NumGas, getuLength(units))
+            read_HSML!(f, data[data.Collection.==GAS], NumGas, getuLength(units))
         elseif name == "POT "
             read_POT!(f, data, getuEnergy(units))
         elseif name == "ACCE"
