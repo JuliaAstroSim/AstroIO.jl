@@ -1,3 +1,6 @@
+@unit Gadget2Mass "1e10M⊙" Gadget2MassUnit 1e10*u"Msun" false
+const uGadget2 = [u"kpc",u"kpc/km*s",u"A",u"K",u"cd",Gadget2Mass,u"mol"]
+
 # Header
 mutable struct HeaderGadget2
     npart::MVector{6,Int32} # gas, halo, disk, bulge, star, blackhole
@@ -152,9 +155,9 @@ function read_VEL!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray
     temp1 = read(f, Int32)
     Vel = data.Vel
     for i in 1:length(data)
-        vx = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
-        vy = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
-        vz = uconvert(uVel, read(f, Float32) * 1.0 * u"km/s")
+        vx = read(f, Float32) * 1.0 * uVel
+        vy = read(f, Float32) * 1.0 * uVel
+        vz = read(f, Float32) * 1.0 * uVel
         Vel[i] = PVector(vx, vy, vz)
     end
     temp2 = read(f, Int32)
@@ -255,7 +258,7 @@ function read_POT!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray
     temp1 = read(f, Int32)
     Potential = data.Potential
     for i in 1:length(data)
-        Potential[i] = uconvert(uPot, read(f, Float32) * u"km^2/s^2" * data.Mass[i])
+        Potential[i] = read(f, Float32) * 1.0 * uPot
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
@@ -267,9 +270,9 @@ function read_ACCE!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArra
     temp1 = read(f, Int32)
     Acc = data.Acc
     for i in 1:length(data)
-        accx = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
-        accy = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
-        accz = uconvert(uAcc, read(f, Float32) * 1.0 * u"km^2/kpc/s^2")
+        accx = read(f, Float32) * 1.0 * uAcc
+        accy = read(f, Float32) * 1.0 * uAcc
+        accz = read(f, Float32) * 1.0 * uAcc
         Acc[i] = PVector(accx, accy, accz)
     end
     temp2 = read(f, Int32)
@@ -278,7 +281,7 @@ function read_ACCE!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArra
     end
 end
 
-function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro;
+function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uGadget2;
         acc = false,
         pot = false,
     )
@@ -330,7 +333,7 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     return data
 end
 
-function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
+function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uGadget2)
     NumGas = header.npart[1]
 
     data = StructArray(Star(units))
@@ -375,13 +378,13 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
 end
 
 """
-read_gadget2(filename::AbstractString, units = uAstro; kw...)
+read_gadget2(filename::AbstractString, units = uGadget2; kw...)
 
 # Keywords
 - acc::Bool = false : read acceleration data if exist
 - pot::Bool = false : read potential data if exist
 """
-function read_gadget2(filename::AbstractString, units = uAstro; kw...)
+function read_gadget2(filename::AbstractString, units = uGadget2; kw...)
     f = open(filename, "r")
 
     temp = read(f, Int32)
@@ -404,7 +407,7 @@ function read_gadget2(filename::AbstractString, units = uAstro; kw...)
     return header, data
 end
 
-function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
+function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uGadget2)
     NumTotal = sum(header.npart)
     uLength = getuLength(units)
     pos = StructArray(PVector(uLength) for i in 1:NumTotal)
@@ -424,7 +427,7 @@ function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, hea
     return pos
 end
 
-function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uAstro)
+function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units = uGadget2)
     while !eof(f)
         temp1 = read(f, Int32)
         name = String(read(f, 4))
@@ -442,7 +445,7 @@ function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2
     return nothing
 end
 
-function read_gadget2_pos(filename::AbstractString, units = uAstro)
+function read_gadget2_pos(filename::AbstractString, units = uGadget2)
     f = open(filename, "r")
 
     temp = read(f, Int32)
@@ -579,7 +582,7 @@ function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::Uni
             type = GadgetTypes[i]
             for p in data
                 if p.Collection == type
-                    write(f, Float32(ustrip(u"Msun", p.Mass) / 1.0e10))
+                    write(f, Float32(ustrip(Gadget2Mass, p.Mass)))
                 end
             end
         end
@@ -802,7 +805,7 @@ end
 # FileIO API
 import FileIO: Stream, File
 
-function load(s::Stream{format"Gadget2"}, units = uAstro)
+function load(s::Stream{format"Gadget2"}, units = uGadget2)
     header = read_gadget2_header(s)
     data   = read_gadget2_particle(s, header, units)
     return header, data
