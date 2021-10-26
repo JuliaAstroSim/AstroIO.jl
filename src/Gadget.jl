@@ -339,11 +339,18 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
         append!(data, StructArray([Star(units, collection = GadgetTypes[k]) for i = 1:header.npart[k]]))
     end
 
+    name = ""
     while !eof(f)
+        try
         temp1 = read(f, Int32)
         name = String(read(f, 4))
         temp2 = read(f, Int32)
         skippoint = read(f, Int32)
+        catch e
+            if isa(e, EOFError)
+                return data
+            end
+        end
         
         if name == "POS "
             read_POS!(f, data, getuLength(units))
