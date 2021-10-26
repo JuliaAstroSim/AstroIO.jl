@@ -1,6 +1,6 @@
 # Header
 mutable struct HeaderGadget2
-    npart::MVector{6,Int32} # gas, halo, disk, Bulge, star, blackholw
+    npart::MVector{6,Int32} # gas, halo, disk, bulge, star, blackhole
     mass::MVector{6,Float64}
 
     time::Float64
@@ -220,7 +220,7 @@ end
 
 function read_HSML!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, NumGas::Int32, uLength::Units)
     temp1 = read(f, Int32)
-    HSML = data.HSML
+    HSML = data.Hsml
     for i in 1:NumGas
         HSML[i] = read(f, Float32) * 1.0 * uLength
     end
