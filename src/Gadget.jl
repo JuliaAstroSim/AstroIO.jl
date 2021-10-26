@@ -197,11 +197,11 @@ function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArra
     for type in 1:6
         if header.mass[type] == 0.0 # read from file
             for i in start:tail
-                Mass[i] = read(f, Float32) * 1.0e10 * uMass
+                Mass[i] = read(f, Float32) * uMass
             end
         else # set using header
             for i in start:tail
-                Mass[i] = header.mass[type] * 1.0e10 * uMass
+                Mass[i] = header.mass[type] * uMass
             end
         end
         start += header.npart[type]
@@ -234,7 +234,7 @@ function read_Density!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructA
     temp1 = read(f, Int32)
     Density = data.Density
     for i in 1:NumGas
-        Density[i] = read(f, Float32) * 10e10uDensity
+        Density[i] = read(f, Float32) * 1.0 * uDensity
     end
     temp2 = read(f, Int32)
     if temp1 != temp2
