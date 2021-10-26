@@ -112,6 +112,27 @@ function read_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}})
     return header
 end
 
+function read_gadget2_header(filename::AbstractString)
+    f = open(filename, "r")
+
+    temp = read(f, Int32)
+    if temp == 256
+        seekstart(f)
+        header = read_gadget2_header(f)
+    elseif temp == 8 # Format 2
+        name = String(read(f, 4))
+        temp1 = read(f, Int32)
+        temp2 = read(f, Int32)
+        header = read_gadget2_header(f)
+    else
+        error("Unsupported Gadget2 Format!")
+    end
+
+    close(f)
+
+    return header
+end
+
 function read_POS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, uLength::Units)
     temp1 = read(f, Int32)
     Pos = data.Pos
