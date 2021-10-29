@@ -23,6 +23,11 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
     h, d = read_gadget2("gadget2.format2")
     @test h.npart[1] == 1472
 
+    # getindex
+    for i in instances(Collection)
+        @test length(d[i]) == h.npart[Int(i)]
+    end
+
     pos = read_gadget2_pos("gadget2.format2")
     @test length(pos) == 1472
     @test pos[1] == PVector(-0.07133729010820389*u"kpc", -0.35668644309043884*u"kpc", -0.9273847341537476*u"kpc")
