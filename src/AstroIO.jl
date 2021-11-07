@@ -8,7 +8,6 @@ using IterTools
 using Printf
 using Distributed
 using ProgressMeter
-using Setfield
 using BangBang
 using StructArrays
 
