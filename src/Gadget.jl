@@ -180,8 +180,8 @@ end
 
 function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArray, header::HeaderGadget2, uMass::Units)
     read_mass_flag = false
-    for i in header.mass
-        if i == 0.0
+    for i in eachindex(header.npart)
+        if header.npart[i] > 0 && header.mass[i] == 0.0
             read_mass_flag = true
             break
         end
