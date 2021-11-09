@@ -37,7 +37,6 @@ export
 
     GadgetKeys,
     GadgetTypes,
-    uGadget2,
 
     # RAMSES
     read_ramses,
@@ -82,9 +81,5 @@ include("HDF5.jl")
 include("Houdini.jl")
 include("PrettyPrint.jl")
 include("Tools.jl")
-
-function __init__()
-    Unitful.register(AstroIO)
-end
 
 end # module

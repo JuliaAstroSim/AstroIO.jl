@@ -1,6 +1,3 @@
-@unit Gadget2Mass "1e10M⊙" Gadget2MassUnit 1e10*u"Msun" false
-const uGadget2 = [u"kpc",u"kpc/km*s",u"A",u"K",u"cd",Gadget2Mass,u"mol"]
-
 # Header
 mutable struct HeaderGadget2
     npart::MVector{6,Int32} # gas, halo, disk, bulge, star, blackhole
@@ -197,11 +194,11 @@ function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArra
     for type in 1:6
         if header.mass[type] == 0.0 # read from file
             for i in start:tail
-                Mass[i] = read(f, Float32) * uMass
+                Mass[i] = uconvert(uMass, read(f, Float32) * 1.0e10u"Msun")
             end
         else # set using header
             for i in start:tail
-                Mass[i] = header.mass[type] * uMass
+                Mass[i] = uconvert(uMass, header.mass[type] * 1.0e10u"Msun")
             end
         end
         start += header.npart[type]
