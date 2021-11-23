@@ -285,7 +285,7 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     data = StructArray(Star(units))
     empty!(data)
     for k in 1:6
-        append!(data, StructArray([Star(units, collection = GadgetTypes[k]) for i = 1:header.npart[k]]))
+        append!(data, StructArray(Star(units, collection = GadgetTypes[k]) for i = 1:header.npart[k]))
     end
     
     read_POS!(f, data, getuLength(units))
