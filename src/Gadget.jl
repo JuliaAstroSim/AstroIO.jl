@@ -449,21 +449,23 @@ function read_gadget2(filename::AbstractString, units, fileunits = uGadget2; kw.
     return header, data
 end
 
-function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units)
+function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units, fileunits)
     NumTotal = sum(header.npart)
     
     if isnothing(units)
         uLength = 1.0
+        fileuLength = 1.0
     else
         uLength = getuLength(units)
+        fileuLength = getuLength(fileunits)
     end
     pos = StructArray(PVector(uLength) for i in 1:NumTotal)
 
     temp1 = read(f, Int32)
     for i in 1:NumTotal
-        x = read(f, Float32) * 1.0 * uLength
-        y = read(f, Float32) * 1.0 * uLength
-        z = read(f, Float32) * 1.0 * uLength
+        x = uconvert(uLength, read(f, Float32) * 1.0 * fileuLength)
+        y = uconvert(uLength, read(f, Float32) * 1.0 * fileuLength)
+        z = uconvert(uLength, read(f, Float32) * 1.0 * fileuLength)
         pos[i] = PVector(x, y, z)
     end
     temp2 = read(f, Int32)
@@ -474,7 +476,7 @@ function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, hea
     return pos
 end
 
-function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units)
+function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units, fileunits)
     while !eof(f)
         temp1 = read(f, Int32)
         name = String(read(f, 4))
@@ -482,7 +484,7 @@ function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2
         skippoint = read(f, Int32)
         
         if name == "POS "
-            return read_gadget2_pos_kernel(f, header, units)
+            return read_gadget2_pos_kernel(f, header, units, fileunits)
         else
             skip(f, temp2)
         end
@@ -492,20 +494,20 @@ function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2
     return nothing
 end
 
-function read_gadget2_pos(filename::AbstractString, units)
+function read_gadget2_pos(filename::AbstractString, units, fileunits = uGadget2)
     f = open(filename, "r")
 
     temp = read(f, Int32)
     if temp == 256
         seekstart(f)
         header = read_gadget2_header(f)
-        pos = read_gadget2_pos_kernel(f, header, units)
+        pos = read_gadget2_pos_kernel(f, header, units, fileunits)
     elseif temp == 8 # Format 2
         name = String(read(f, 4))
         temp1 = read(f, Int32)
         temp2 = read(f, Int32)
         header = read_gadget2_header(f)
-        pos = read_gadget2_pos_kernel_format2(f, header, units)
+        pos = read_gadget2_pos_kernel_format2(f, header, units, fileunits)
     else
         error("Unsupported Gadget2 Format!")
     end
