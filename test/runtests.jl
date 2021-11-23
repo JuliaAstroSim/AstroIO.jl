@@ -5,7 +5,7 @@ using PhysicalParticles
 
 using AstroIO
 
-header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particles
+header, data = read_gadget2("gassphere_littleendian.gadget2", uAstro, uGadget2) # 1472 gas particles
 
 @testset "Gadget" begin
     result = print(header)
@@ -20,19 +20,25 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
     # format2
     @test write_gadget2_format2("gadget2.format2", header, data)
 
-    h, d = read_gadget2("gadget2.format2")
+    h, d = read_gadget2("gadget2.format2", uAstro, uGadget2)
     @test h.npart[1] == 1472
+    
+    h, d = read_gadget2("gadget2.format2", nothing, uGadget2)
+    @test d.Mass[1] == 6.7934783874079585e-4
+
+    h, d = read_gadget2("gadget2.format2", nothing, nothing)
+    @test d.Mass[1] == 6.7934783874079585e-4
 
     # getindex
     for i in instances(Collection)
         @test length(d[i]) == h.npart[Int(i)]
     end
 
-    pos = read_gadget2_pos("gadget2.format2")
+    pos = read_gadget2_pos("gadget2.format2", uGadget2)
     @test length(pos) == 1472
     @test pos[1] == PVector(-0.07133729010820389*u"kpc", -0.35668644309043884*u"kpc", -0.9273847341537476*u"kpc")
 
-    pos = read_gadget2_pos("gassphere_littleendian.gadget2")
+    pos = read_gadget2_pos("gassphere_littleendian.gadget2", uGadget2)
     @test length(pos) == 1472
     @test pos[1] == PVector(-0.07133729010820389*u"kpc", -0.35668644309043884*u"kpc", -0.9273847341537476*u"kpc")
 
@@ -44,7 +50,7 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
     @test uAcc == u"km^2*kpc^-1*s^-2"
     @test uPot == u"km^2*s^-2"
 
-    h, d = read_gadget2("pot_acc.format2.gadget2", acc = true, pot = true)
+    h, d = read_gadget2("pot_acc.format2.gadget2", uGadget2, uGadget2, acc = true, pot = true)
     @test d.Acc[20] == PVector(1216.8760986328125*u"km^2*kpc^-1*s^-2",
                                868.4943237304688*u"km^2*kpc^-1*s^-2",
                                874.93798828125*u"km^2*kpc^-1*s^-2")
@@ -53,7 +59,7 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
 
     write_gadget2_format2("pot_acc.format2.test.gadget2", h, d, acc = true, pot = true)
 
-    h, d = read_gadget2("pot_acc.format2.test.gadget2", acc = true, pot = true)
+    h, d = read_gadget2("pot_acc.format2.test.gadget2", uGadget2, uGadget2, acc = true, pot = true)
     @test d.Acc[20] == PVector(1216.8760986328125*u"km^2*kpc^-1*s^-2",
                                868.4943237304688*u"km^2*kpc^-1*s^-2",
                                874.93798828125*u"km^2*kpc^-1*s^-2")
@@ -64,7 +70,7 @@ header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particl
 end
 
 @testset "FileIO" begin
-    h, d = load("gassphere_littleendian.gadget2")
+    h, d = load("gassphere_littleendian.gadget2", uAstro)
     @test length(d) == 1472
 
     @test isnothing(save("testFileIO.gadget2", h, d))
