@@ -5,21 +5,22 @@ using PhysicalParticles
 
 using AstroIO
 
-header, data = read_gadget2("gassphere_littleendian.gadget2", uAstro, uGadget2) # 1472 gas particles
-
-@testset "Gadget" begin
-    result = print(header)
-    @test isnothing(result)
+@testset "GadgetFormat1" begin
+    header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particles
 
     @test length(data) == 1472
+    @test sum(header.npart) == 1472
 
     @test write_gadget2("testGadget.gadget2", header, data)
 
     @test write_gadget2("testGadgetHeaderGeneration.gadget2", data)
 
-    # format2
-    @test write_gadget2_format2("gadget2.format2", header, data)
+    pos = read_gadget2_pos("gassphere_littleendian.gadget2")
+    @test length(pos) == 1472
+    @test pos[1] == PVector(-0.07133729010820389*u"kpc", -0.35668644309043884*u"kpc", -0.9273847341537476*u"kpc")
+end
 
+@testset "GadgetFormat2" begin
     h, d = read_gadget2("gadget2.format2", uAstro, uGadget2)
     @test h.npart[1] == 1472
     
@@ -90,6 +91,8 @@ end
 end
 
 @testset "JLD2" begin
+    header, data = read_gadget2("gassphere_littleendian.gadget2")
+
     d = [Star2D() for i = 1:10]
     @test write_gadget2_jld("testjldGadget.jld2", header, d)
 

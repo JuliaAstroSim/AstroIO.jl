@@ -61,6 +61,415 @@ function HeaderGadget2(data;
     )
 end
 
+
+# abstract type AbstractChemicalComposition end
+
+# mutable struct ChemicalComposition{T<:AbstractFloat}
+#     Fe::T
+#     Mg::T
+# end
+
+
+struct Gadget2Particle{P, V, A, M, E, F, Et, D, T, dP, dE, Prs, T_1, I<:Integer} <: AbstractParticle3D
+    Pos::PVector{P}
+    Vel::PVector{V}
+    Acc::PVector{A}
+    Mass::M
+    ID::I
+    Collection::Collection
+
+    Ti_endstep::I  # Next integer step on the timeline.
+    Ti_begstep::I  # Present integer step on the timeline.
+    GravCost::I    # For each two-particle interaction, GravCost += 1
+
+    Potential::E   # Particle potential in the force field
+    OldAcc::A      # Save the normalization of acceleration of last step. Useful in Tree n-body method.
+
+    # SPH
+    Entropy::Et
+    Density::D
+    Hsml::P
+
+    Left::F
+    Right::F
+    NumNgbFound::I
+
+    RotVel::PVector{V}
+    DivVel::T_1
+    CurlVel::T_1
+    dHsmlRho::dP
+
+    Pressure::Prs
+    DtEntropy::dE
+    MaxSignalVel::V
+
+    Energy::E
+    Temperature::T
+
+    # Composition::AbstractChemicalComposition
+end
+
+function Gadget2Particle{T, I}(units::Array; id::I = zero(I), collection = STAR) where {T<:AbstractFloat, I<:Integer}
+    uLength = getuLength(units)
+    uTime = getuTime(units)
+    uMass = getuMass(units)
+    uVel = getuVel(units)
+    uAcc = getuAcc(units)
+    uEnergy = getuEnergy(units)
+    uEnergyUnit = getuEnergyUnit(units)
+    uTemperature = getuTemperature(units)
+    return Gadget2Particle(
+        PVector(T, uLength), PVector(T, uVel), PVector(T, uAcc),
+        zero(T) * uMass, id, collection,
+        zero(I), zero(I), zero(I),
+        zero(T) * uEnergyUnit, zero(T) * uAcc,
+
+        zero(T) * getuEntropy(units),
+        zero(T) * getuDensity(units), zero(T) * uLength,
+        zero(T), zero(T), zero(I),
+        PVector(T, uVel),
+        zero(T) / uTime, zero(T) / uTime, zero(T) * uLength,
+        zero(T) * getuPressure(units),
+        zero(T) * getuEntropy(units) / uTime,
+        zero(T) * uVel,
+        zero(T) * uEnergyUnit,
+        zero(T) * uTemperature
+        # ChemicalComposition(0.0,0.0),
+    )
+end
+
+# MethodError: Cannot `convert` an object of type 
+# PVector{Quantity{Float32,𝐋,Unitful.FreeUnits{(kpc,),𝐋,nothing}}} to an object of type 
+# PVector{Quantity{Float64,𝐋,Unitful.FreeUnits{(kpc,),𝐋,nothing}}}
+# Closest candidates are:
+# convert(::Type{T}, ::T) where T at essentials.jl:205
+# PVector{T}(::Any, ::Any, ::Any) where T<:Number
+
+# TODO We could consider to change the signature of Gadget2Particle to have only two parametric types.
+function Gadget2Particle(args...; kw...)
+    Gadget2Particle{Float64, Int64}(args...; kw... )
+end
+
+const N_TYPE = length(instances(Collection))
+
+const name_mapper = Dict("POS " => :Pos,
+                         "ID  " => :ID,
+                         "VEL " => :Vel,
+                         "ACCE" => :Acc,
+                         "MASS" => :Mass,
+                         "RHO " => :Density,
+                         "ENTR" => :Entropy,
+                         "HSML" => :Hsml,
+                         "POT " => :Potential,
+                         "U   " => :Energy,
+                         "TEMP" => :Temperature,
+                         )
+
+function get_units(field::Symbol, units = uGadget2)
+    units_dict = Dict(:Pos => getuLength,
+         :ID => x -> Unitful.NoUnits,
+         :Vel => getuVel, 
+         :Acc => getuAcc,
+         :Mass => getuMass,
+         :Density  => getuDensity,
+         :Entropy => getuEntropy,
+         :Hsml => getuLength,
+         :Potential => getuEnergyUnit,
+         :Pressure => getuPressure,
+         :Temperature => getuTemperature,
+         :Energy => getuEnergyUnit,
+         )
+    return get(units_dict, field, x -> Unitful.NoUnits)(units)
+end
+
+const gadget2_format1_names = ["HEAD", "POS ", "VEL ", "ID  ", "MASS",
+                               "ENTR", "RHO ", "HSML", "POT ", "ACCE"]
+
+abstract type AbstractGadget2Block end
+
+Gadget2Stream = Union{IOStream,Stream{format"Gadget2"}}
+
+# struct AbstractGadget2Stream{N::Integer} <:Union{IOStream,Stream{format"Gadget2"}}
+#     format::N
+# end
+
+mutable struct Gadget2Block <: AbstractGadget2Block
+    label::Union{String, Missing}
+    data_size::Integer
+    position::Integer
+    partlen::Integer
+    data_type::Type
+    p_types::AbstractVector{Bool}
+end
+
+function Gadget2Block(label::Union{String, Missing}, data_size::Integer, position::Integer)
+    return Gadget2Block(label, data_size, position, 0, Number, zeros(Bool, N_TYPE))
+end
+
+
+function Base.show(io::IO, b::Gadget2Block)
+    print(io,"$(b.label) - $(b.data_size) ($(b.position))")
+end
+
+
+function set_partlen!(block::Gadget2Block, npart::AbstractVector)
+    tot_part = sum(npart)
+    # Set the partlen, using our amazing heuristics
+    flag = false
+    if block.label == "POS " || block.label == "VEL "
+        if block.data_size == tot_part * 24
+            block.partlen = 24
+            block.data_type = Float64
+        else
+            block.partlen = 12
+            block.data_type = Float32
+        end
+        block.p_types = npart .!= false
+        flag = true
+    elseif block.label == "ID  "
+        # Heuristic for long (64-bit) IDs
+        if block.data_size == tot_part * 4
+            block.partlen = 4
+            block.data_type = Int32
+        else
+            block.partlen = 8
+            block.data_type = Int64
+        end
+        block.p_types = npart .!= false
+        flag = true
+    end
+    return flag
+end
+
+using Combinatorics
+"""
+Set up the particle types in the block, with a heuristic,
+which assumes that blocks are either fully present or not
+for a given particle type
+"""
+function get_block_one_hot_collection(block::Gadget2Block, npart::AbstractVector)
+    tot_part = sum(npart)
+    p_types = zeros(Bool, N_TYPE)
+    if block.data_size == tot_part * block.partlen
+        p_types[:] .= true
+        return p_types
+    end
+    for blocknpart in 1:N_TYPE-1
+        # iterate of different possible combinations of particles in the block
+        # we stop when we can we match the length of the block
+        for perm in permutations([1:N_TYPE...], blocknpart)
+            # the 64-bit calculation is important here
+            if block.data_size == sum(npart[perm]) * block.partlen
+                p_types[perm] .= true
+                return p_types
+            end
+        end
+    end
+    throw(DomainError(block.label, "Could not determine particle types for block"))
+end
+
+"""
+Get the dimensionality of the block.
+eg, 3 for POS, 1 for most other things
+"""
+function get_block_dim(block::Gadget2Block)
+    return block.partlen ÷ sizeof(block.data_type)
+end
+
+function treat_header!(block::Gadget2Block)
+
+end
+
+
+function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, header::HeaderGadget2)
+    blocks = Vector{Gadget2Block}()
+    get_block = format == 1 ? get_block_format1 : get_block_format2
+    counter = 1
+    seekstart(f)
+    while !eof(f)
+        block = get_block(f)
+        if format == 1
+            block.label = gadget2_format1_names[counter] 
+            counter +=1
+        end
+        if block.label == "HEAD"
+            treat_header!(block)
+            continue
+        end
+
+        succ = set_partlen!(block, header.npart)
+        if !succ
+            """
+            Figure out what particles are here and what types
+            they have. This also is a heuristic, which assumes
+            that blocks are either fully present or not for a
+            given particle. It also has to try all
+            possibilities of dimensions of array and data type.
+            """ 
+            for (dim, tp) in ((1, Float32), (1, Float64), (3, Float32), (3, Float64))
+                try
+                    block.data_type = tp
+                    block.partlen = sizeof(tp) * dim
+                    block.p_types = get_block_one_hot_collection(block, header.npart)
+                    succ = true
+                    break
+                catch e
+                    if isa(e, DomainError)
+                        continue
+                    else
+                        rethrow(e)
+                    end
+                end
+            end
+        end
+
+        if !succ
+            @warn "Encountered a gadget block $(block.label) which could not be interpreted - is it a strange length or data type (length=$(block.data_size))?"
+        end
+
+        # get_block_one_hot_collection(block, header.npart)
+
+        push!(blocks, block)
+    end
+    seekstart(f)
+    return blocks
+end
+
+
+function read_block(f::Gadget2Stream, b::Gadget2Block, data::StructArray)
+    qty = name_mapper[b.label]
+    println(b.label)
+    arr = getproperty(data, qty)
+    units = get_units(qty)
+    dim = get_block_dim(b)
+    T = b.data_type
+    seek(f, b.position)
+    if dim == 1
+        for i in 1:length(data)
+            arr[i] = read(f, T) * units
+        end
+    elseif dim == 3
+        for i in 1:length(data)
+            x = read(f, T)
+            y = read(f, T)
+            z = read(f, T)
+            arr[i] = PVector(x, y, z, units)
+        end
+    else
+        error("Unknown array dimensionality: $dim")
+    end
+    # getproperty(data, qty) = arr
+end
+
+function read_gadget2_header(f::Gadget2Stream, format::Integer)
+    if format == 1
+        return read_gadget2_header(f)
+    elseif format == 2
+        skip(f, 4*sizeof(Int32))
+        return read_gadget2_header(f)
+    else
+        error("Unknown Gadget2 file format: $format")
+    end
+end
+
+function get_data_types(blocks::Vector{Gadget2Block})
+    float_type = Type{Any}
+    integer_type = Type{Any}
+    for block in blocks
+        if block.label == "POS "
+            float_type = block.data_type
+        elseif block.label == "ID  "
+            integer_type = block.data_type
+        end
+    end
+    types = (float_type=float_type, integer_type=integer_type)
+    types
+end
+
+# If I don't add type specifications I get:
+# MethodError: Cannot `convert` an object of type 
+#     PVector{Quantity{Float32,𝐋,Unitful.FreeUnits{(kpc,),𝐋,nothing}}} to an object of type 
+#     PVector{Quantity{Float64,𝐋,Unitful.FreeUnits{(kpc,),𝐋,nothing}}}
+
+# TODO convert method
+# convert(PVector{Unitful.Quantity{Float64}}, x) = PVector{Float32, }
+
+function read_gadget2(filename::AbstractString, units = uGadget2)
+    f = open(filename, "r")
+    format = decide_file_format(f)
+    header = read_gadget2_header(f, format)
+    blocks = get_blocks(f, format, header)
+    # dtypes = get_data_types(blocks)
+    # println(header)
+    data = StructArray(Gadget2Particle(units))
+    empty!(data)
+    # Probably use cumsum
+    for k in 1:6
+        append!(data, StructArray([Gadget2Particle(units, collection = GadgetTypes[k]) for i = 1:header.npart[k]]))
+    end
+    # println(blocks)
+    for b in blocks
+        read_block(f, b, data)
+    end
+    close(f)
+    header, data
+end
+
+
+function decide_file_format(f::Gadget2Stream)
+    seekstart(f)
+    temp = read(f, Int32)
+    seekstart(f)
+    if temp == 256
+        return 1
+    elseif temp == 8 # Format 2
+        return 2
+    else
+        error("Unsupported Gadget2 Format!")
+    end
+end
+
+function get_block_format1(f::Gadget2Stream)
+    # Structure of the block:
+    # <SIZE><DATA><SIZE>
+    block_start = position(f)
+    data_size = peek(f, Int32)
+    block_size = data_size + 2 * sizeof(Int32)
+    data_start = block_start + sizeof(Int32)
+    # println("start: $block_start")
+    # println("data_size: $data_size")
+    seek(f, block_start + data_size + sizeof(Int32))
+    data_size_after_block = read(f, Int32)
+    data_start = block_start 
+    # println("data_size2: $data_size_after_block")
+    @assert data_size == data_size_after_block "data size before/after block data do not match"
+    # if data_size != data_size_after_block
+    #     error("Wrong location symbol while reading block '$(b.label)'\n")
+    # end
+
+    seek(f, block_start + block_size)
+    return Gadget2Block(missing, data_size, data_start)
+end
+
+
+function get_block_format2(f::Gadget2Stream)
+    # Structure of the block:
+    # <SKIP><NAME><SIZE+8><SKIP><SIZE><DATA><SIZE>
+    block_start = position(f)
+    skip(f, sizeof(Int32))
+    name = String(read(f, 4))
+    block_size = read(f, Int32)
+    skip(f, sizeof(Int32))
+    data_size = read(f, Int32)
+    data_start = position(f)
+    @assert data_start == block_start + 20 "Data starting position ($data_start) not 20 bytes away from block start ($block_start)"
+    @assert block_size == data_size + 8 "Block size ($block_size) != data_size + 8 ($(data_size+8))"
+    seek(f, block_start + block_size + 4 * sizeof(Int32))
+    return Gadget2Block(name, data_size, data_start)
+end
+
+
+
 # Read
 
 function read_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}})
@@ -108,7 +517,7 @@ function read_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}})
     if temp1 != temp2
         error("Wrong location symbol while reading Header!\n")
     end
-    
+
     return header
 end
 
@@ -206,7 +615,7 @@ function read_MASS!(f::Union{IOStream,Stream{format"Gadget2"}}, data::StructArra
             tail += header.npart[type+1]
         end
     end
-        
+
     if read_mass_flag
         temp2 = read(f, Int32)
         if temp1 != temp2
@@ -346,7 +755,7 @@ function read_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, heade
             read_ACCE!(f, data, uAcc, fileuAcc)
         end
     end
-    
+
     return data
 end
 
@@ -392,7 +801,7 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
                 return data
             end
         end
-        
+
         if name == "POS "
             read_POS!(f, data, uLength, fileuLength)
         elseif name == "VEL "
@@ -482,7 +891,7 @@ function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2
         name = String(read(f, 4))
         temp2 = read(f, Int32)
         skippoint = read(f, Int32)
-        
+
         if name == "POS "
             return read_gadget2_pos_kernel(f, header, units, fileunits)
         else
@@ -824,7 +1233,7 @@ function write_gadget2_format2(f::Union{IOStream,Stream{format"Gadget2"}}, heade
     NumGas = header.npart[1]
     if NumGas > 0 && header.flag_entropy_instead_u > 0
         #TODO Entropy
-    
+
         write_gadget2_format2_block(f, "RHO ", 4 * NumGas)
         write_Density(f, data, NumGas, getuDensity(units))
         
