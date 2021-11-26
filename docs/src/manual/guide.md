@@ -18,7 +18,7 @@ pkg> test AstroIO
 
 ## Basic Usage
 
-```@repl guide
+```julia
 using AstroIO
 ```
 
@@ -26,7 +26,7 @@ using AstroIO
 
 Suffixes `gadget2`, `Gadget2`, `GADGET2` are supported
 
-```@repl guide
+```julia
 header, data = read_gadget2("snapshot.gadget2", uAstro)
 
 write_gadget2("output.Gadget2", header, data)
@@ -39,20 +39,20 @@ Supported units: `uAstro`, `uGadget2`, `uSI`, `uCSG`.
 
 ### Use FileIO interfaces
 
-```@repl guide
+```julia
 header, data = load("snapshot.gadget2")
 save("FileIO.gadget2", header, data)
 ```
 
 ### Output CSV
 
-```@repl guide
+```julia
 write_csv("output", csv) # No suffix
 ```
 
 ### Save and load with JLD2
 
-```@repl guide
+```julia
 write_gadget2_jld("output.jld2", header, data, uGadget2)
 write_jld("NoHeader.jld2", data)
 
