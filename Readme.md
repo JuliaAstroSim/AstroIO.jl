@@ -3,16 +3,39 @@
 I/O interface for astrophysical simulation codes
 
 [![codecov](https://codecov.io/gh/JuliaAstroSim/AstroIO.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaAstroSim/AstroIO.jl)
+[![][docs-dev-img]][docs-dev-url]
 
 ## Installation
 
 ```julia
 ]add AstroIO
 ```
+
 or
+
 ```julia
-]add https://github.com/JuliaAstroSim/AstroIO.jl
+using Pkg; Pkg.add("AstroIO")
 ```
+
+or
+
+```julia
+using Pkg; Pkg.add("https://github.com/JuliaAstroSim/AstroIO.jl")
+```
+
+To test the Package:
+```julia
+]test AstroIO
+```
+
+## Documentation
+
+- [**Dev**][docs-dev-url] &mdash; *documentation of the in-development version.*
+
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://juliaastrosim.github.io/AstroIO.jl/dev
+
+For beginners, it is highly recommended to read the [documentation of PhysicalParticles.jl](https://juliaastrosim.github.io/PhysicalParticles.jl/dev/).
 
 ## Usage
 
@@ -25,13 +48,15 @@ using AstroIO
 Suffixes `gadget2`, `Gadget2`, `GADGET2` are supported
 
 ```julia
-header, data = read_gadget2("snapshot.gadget2")
+header, data = read_gadget2("snapshot.gadget2", uAstro)
 
 write_gadget2("output.Gadget2", header, data)
 
 # If only data provided, a default header would be generated
 write_gadget2("output.GADGET2", data)
 ```
+
+Supported units: `uAstro`, `uGadget2`, `uSI`, `uCSG`.
 
 ### Use FileIO interfaces
 
@@ -49,7 +74,7 @@ write_csv("output", csv) # No suffix
 ### Save and load with JLD2
 
 ```julia
-write_gadget2_jld("output.jld2", header, data)
+write_gadget2_jld("output.jld2", header, data, uGadget2)
 write_jld("NoHeader.jld2", data)
 
 header, data = read_gadget2_jld("output.jld2")

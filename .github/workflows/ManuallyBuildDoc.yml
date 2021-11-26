@@ -1,0 +1,25 @@
+name: ManuallyBuildDoc
+
+on: 
+  [push, pull_request, workflow_dispatch]
+
+# 64-bit Julia only
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, '[doc]')"
+    steps:
+      - uses: actions/checkout@v1
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: '1.6.0'
+      - run: julia --project=docs -e '
+          using Pkg;
+          Pkg.add("Documenter");
+          Pkg.develop(PackageSpec(; path=pwd()));
+          Pkg.instantiate();'
+      - name: Build and deploy doc
+        env:
+          #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Deploying to else where, so use SSH instead
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+        run: julia --project=docs --color=yes docs/make.jl

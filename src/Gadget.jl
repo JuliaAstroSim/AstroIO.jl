@@ -494,6 +494,11 @@ function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2
     return nothing
 end
 
+"""
+    read_gadget2_pos(filename::AbstractString, units, fileunits = uGadget2)
+
+Only read position block and return a StructArray.
+"""
 function read_gadget2_pos(filename::AbstractString, units, fileunits = uGadget2)
     f = open(filename, "r")
 
@@ -669,7 +674,7 @@ function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Abstrac
     write(f, Int32(temp))
     for p in data
         if p.Collection == GAS
-            write(f, Float32(ustrip(uDensity, p.Density) / 1.0e10))
+            write(f, Float32(ustrip(uDensity, p.Density)))
         end
     end
     write(f, Int32(temp))

@@ -17,25 +17,3 @@ function read_jld(filename::AbstractString)
     data = FileIO.load(filename, "data")
     return data
 end
-
-"""
-include("AstroIO.jl/src/AstroIO.jl")
-using .AstroIO
-
-h,d = read_gadget2("AstroIO.jl/test/gassphere_littleendian.gadget2")
-
-write_jld("temp/jldtest.jld2", d)
-
-
-data = load("temp/jldtest.jld2", "data")
-
-@load "temp/jldtest.jld2"
-
-
-write_jld("temp/jldtest.jld2", d)
-
-
-data = load("temp/jldtest.jld2", "data")
-
-@load "temp/jldtest.jld2"
-"""

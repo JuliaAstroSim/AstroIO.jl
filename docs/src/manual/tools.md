@@ -1,0 +1,6 @@
+# Tools
+
+```@docs
+renamesuffixs
+renamereplace
+```
