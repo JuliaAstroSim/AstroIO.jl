@@ -164,7 +164,7 @@ const name_mapper = Dict("POS " => :Pos,
                          "TEMP" => :Temperature,
                          )
 
-function get_units(field::Symbol, units = uGadget2)
+function get_units(field::Symbol, units::Array)
     units_dict = Dict(:Pos => getuLength,
          :ID => x -> Unitful.NoUnits,
          :Vel => getuVel, 
@@ -335,24 +335,26 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
 end
 
 
-function read_block(f::Gadget2Stream, b::Gadget2Block, data::StructArray, fileunits::Array = uGadget2)
+function read_block(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Array, fileunits::Array)
     qty = name_mapper[b.label]
     println(b.label)
     arr = getproperty(data, qty)
-    units = get_units(qty)
+    source_units = get_units(qty, fileunits)
+    target_units = get_units(qty, units)
     dim = get_block_dim(b)
     T = b.data_type
     seek(f, b.position)
     if dim == 1
         for i in 1:length(data)
-            arr[i] = read(f, T) * units
+            arr[i] = uconvert(target_units, read(f, T) * source_units)
         end
     elseif dim == 3
         for i in 1:length(data)
-            x = read(f, T)
-            y = read(f, T)
-            z = read(f, T)
-            arr[i] = PVector(x, y, z, units)
+            # workaround waiting for https://github.com/JuliaAstroSim/PhysicalParticles.jl/issues/27 to be resolved
+            x = uconvert(target_units, read(f, T) * source_units)
+            y = uconvert(target_units, read(f, T) * source_units)
+            z = uconvert(target_units, read(f, T) * source_units)
+            arr[i] = PVector(T(x), T(y), T(z))
         end
     else
         error("Unknown array dimensionality: $dim")
@@ -408,7 +410,7 @@ function read_gadget2(filename::AbstractString, units, fileunits = uGadget2)
     end
     # println(blocks)
     for b in blocks
-        read_block(f, b, data)
+        read_block(f, b, data, units, fileunits)
     end
     close(f)
     header, data
