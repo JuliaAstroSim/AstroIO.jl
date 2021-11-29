@@ -6,7 +6,7 @@ using PhysicalParticles
 using AstroIO
 
 @testset "GadgetFormat1" begin
-    header, data = read_gadget2("gassphere_littleendian.gadget2") # 1472 gas particles
+    header, data = read_gadget2("gassphere_littleendian.gadget2", uAstro) # 1472 gas particles
 
     @test length(data) == 1472
     @test sum(header.npart) == 1472
@@ -15,7 +15,7 @@ using AstroIO
 
     @test write_gadget2("testGadgetHeaderGeneration.gadget2", data)
 
-    pos = read_gadget2_pos("gassphere_littleendian.gadget2")
+    pos = read_gadget2_pos("gassphere_littleendian.gadget2",uAstro, uGadget2)
     @test length(pos) == 1472
     @test pos[1] == PVector(-0.07133729010820389*u"kpc", -0.35668644309043884*u"kpc", -0.9273847341537476*u"kpc")
 end

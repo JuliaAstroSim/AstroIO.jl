@@ -138,17 +138,16 @@ function Gadget2Particle{T, I}(units::Array; id::I = zero(I), collection = STAR)
     )
 end
 
-# MethodError: Cannot `convert` an object of type 
-# PVector{Quantity{Float32,𝐋,Unitful.FreeUnits{(kpc,),𝐋,nothing}}} to an object of type 
-# PVector{Quantity{Float64,𝐋,Unitful.FreeUnits{(kpc,),𝐋,nothing}}}
-# Closest candidates are:
-# convert(::Type{T}, ::T) where T at essentials.jl:205
-# PVector{T}(::Any, ::Any, ::Any) where T<:Number
-
 # TODO We could consider to change the signature of Gadget2Particle to have only two parametric types.
+
 function Gadget2Particle(args...; kw...)
     Gadget2Particle{Float64, Int64}(args...; kw... )
 end
+
+function Gadget2Particle(T::Type, I::Type, args...; kw...)
+    Gadget2Particle{T, I}(args...; kw... )
+end
+
 
 const N_TYPE = length(instances(Collection))
 
@@ -336,7 +335,7 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
 end
 
 
-function read_block(f::Gadget2Stream, b::Gadget2Block, data::StructArray)
+function read_block(f::Gadget2Stream, b::Gadget2Block, data::StructArray, fileunits::Array = uGadget2)
     qty = name_mapper[b.label]
     println(b.label)
     arr = getproperty(data, qty)
@@ -386,26 +385,26 @@ function get_data_types(blocks::Vector{Gadget2Block})
     types
 end
 
-# If I don't add type specifications I get:
-# MethodError: Cannot `convert` an object of type 
-#     PVector{Quantity{Float32,𝐋,Unitful.FreeUnits{(kpc,),𝐋,nothing}}} to an object of type 
-#     PVector{Quantity{Float64,𝐋,Unitful.FreeUnits{(kpc,),𝐋,nothing}}}
+"""
+    read_gadget2(filename::AbstractString, units, fileunits = uGadget2; kw...)
 
-# TODO convert method
-# convert(PVector{Unitful.Quantity{Float64}}, x) = PVector{Float32, }
-
-function read_gadget2(filename::AbstractString, units = uGadget2)
+Return a Tuple of header and particle data in snapshot file.
+`units` is supported by `PhysicalParticles`: `uSI`, `uCGS`, `uAstro`, `uGadget2`, `nothing`.
+`fileunits` is the internal units in the file, and will be converted to `units` while reading the file.
+"""
+function read_gadget2(filename::AbstractString, units, fileunits = uGadget2)
     f = open(filename, "r")
     format = decide_file_format(f)
     header = read_gadget2_header(f, format)
     blocks = get_blocks(f, format, header)
-    # dtypes = get_data_types(blocks)
-    # println(header)
-    data = StructArray(Gadget2Particle(units))
-    empty!(data)
-    # Probably use cumsum
+    dtypes = get_data_types(blocks)
+    tot_part = sum(header.npart)
+    data = StructArray([AstroIO.Gadget2Particle(dtypes..., units) for i=1:tot_part])
+    # Setup collections
+    indexes = [0, cumsum(header.npart)...]
+    collections = instances(Collection)
     for k in 1:6
-        append!(data, StructArray([Gadget2Particle(units, collection = GadgetTypes[k]) for i = 1:header.npart[k]]))
+        data.Collection[indexes[k]+1:indexes[k+1]] .= collections[k]
     end
     # println(blocks)
     for b in blocks
@@ -415,6 +414,9 @@ function read_gadget2(filename::AbstractString, units = uGadget2)
     header, data
 end
 
+function convert(data::StructArray)
+
+end
 
 function decide_file_format(f::Gadget2Stream)
     seekstart(f)
@@ -823,7 +825,7 @@ function read_gadget2_particle_format2(f::Union{IOStream,Stream{format"Gadget2"}
 
     return data
 end
-
+#=
 """
     read_gadget2(filename::AbstractString, units, fileunits = uGadget2; kw...)
 
@@ -857,6 +859,7 @@ function read_gadget2(filename::AbstractString, units, fileunits = uGadget2; kw.
 
     return header, data
 end
+=#
 
 function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units, fileunits)
     NumTotal = sum(header.npart)
