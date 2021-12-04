@@ -337,7 +337,6 @@ end
 
 function read_block(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Array, fileunits::Array)
     qty = name_mapper[b.label]
-    println(b.label)
     arr = getproperty(data, qty)
     source_units = get_units(qty, fileunits)
     target_units = get_units(qty, units)
@@ -444,13 +443,12 @@ function get_block_format1(f::Gadget2Stream)
     # println("data_size: $data_size")
     seek(f, block_start + data_size + sizeof(Int32))
     data_size_after_block = read(f, Int32)
-    data_start = block_start 
     # println("data_size2: $data_size_after_block")
     @assert data_size == data_size_after_block "data size before/after block data do not match"
     # if data_size != data_size_after_block
     #     error("Wrong location symbol while reading block '$(b.label)'\n")
     # end
-
+    # Move to the end
     seek(f, block_start + block_size)
     return Gadget2Block(missing, data_size, data_start)
 end
@@ -467,7 +465,7 @@ function get_block_format2(f::Gadget2Stream)
     data_size = read(f, Int32)
     data_start = position(f)
     @assert data_start == block_start + 20 "Data starting position ($data_start) not 20 bytes away from block start ($block_start)"
-    @assert block_size == data_size + 8 "Block size ($block_size) != data_size + 8 ($(data_size+8))"
+    @assert block_size == data_size + 8 "In block $name: size ($block_size) != data_size + 8 ($(data_size+8))"
     seek(f, block_start + block_size + 4 * sizeof(Int32))
     return Gadget2Block(name, data_size, data_start)
 end
