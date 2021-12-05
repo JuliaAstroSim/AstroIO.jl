@@ -456,10 +456,9 @@ Return a Tuple of header and particle data in snapshot file.
 `fileunits` is the internal units in the file, and will be converted to `units` while reading the file.
 """
 function read_gadget2(filename::AbstractString, units, fileunits = uGadget2)
-    f = open(filename, "r")
-    header, data = read_gadget2(f, units, fileunits)
-    close(f)
-    header, data
+    open(filename, "r") do f
+        read_gadget2(f, units, fileunits)
+    end
 end
 
 function read_gadget2(f::Gadget2Stream, units, fileunits = uGadget2)
@@ -1012,9 +1011,9 @@ function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, 
         acc = false,
         pot = false,
     )
-    f = open(filename, "w")
-    write_gadget2_format2(f, header, data, units; acc, pot)
-    close(f)
+    open(filename, "w") do f
+        write_gadget2_format2(f, header, data, units; acc, pot)
+    end
     return true
 end
 
