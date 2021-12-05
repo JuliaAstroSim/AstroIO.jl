@@ -532,7 +532,7 @@ end
 
 # Read
 
-function read_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}})
+function read_gadget2_header(f::Gadget2Stream)
     header = HeaderGadget2()
 
     temp1 = read(f, Int32)
@@ -602,7 +602,7 @@ function read_gadget2_header(filename::AbstractString)
     return header
 end
 
-function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units, fileunits)
+function read_gadget2_pos_kernel(f::Gadget2Stream, header::HeaderGadget2, units, fileunits)
     NumTotal = sum(header.npart)
     
     if isnothing(units)
@@ -629,7 +629,7 @@ function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, hea
     return pos
 end
 
-function read_gadget2_pos_kernel_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, units, fileunits)
+function read_gadget2_pos_kernel_format2(f::Gadget2Stream, header::HeaderGadget2, units, fileunits)
     while !eof(f)
         temp1 = read(f, Int32)
         name = String(read(f, 4))
@@ -694,7 +694,7 @@ function count_gadget_types(data::StructArray)
     return Counts
 end
 
-function write_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2)
+function write_gadget2_header(f::Gadget2Stream, header::HeaderGadget2)
     temp = 256
 
     write(f, Int32(temp))
@@ -739,7 +739,7 @@ function write_gadget2_header(f::Union{IOStream,Stream{format"Gadget2"}}, header
     flush(f)
 end
 
-function write_POS(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, NumTotal::Integer, uLength)
+function write_POS(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer, uLength)
     temp = 4 * NumTotal * 3
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -754,7 +754,7 @@ function write_POS(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArr
     write(f, Int32(temp))
 end
 
-function write_VEL(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, NumTotal::Integer, uVel)
+function write_VEL(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer, uVel)
     temp = 4 * NumTotal * 3
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -769,7 +769,7 @@ function write_VEL(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArr
     write(f, Int32(temp))
 end
 
-function write_ID(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, NumTotal::Integer)
+function write_ID(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer)
     temp = 4 * NumTotal
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -782,7 +782,7 @@ function write_ID(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArra
     write(f, Int32(temp))
 end
 
-function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, header::HeaderGadget2, uMass)
+function write_MASS_kernel(f::Gadget2Stream, data::AbstractArray, header::HeaderGadget2, uMass)
     for i in 1:6
         if header.mass[i] == 0.0
             # if no particle, this would not be executed
@@ -796,7 +796,7 @@ function write_MASS_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, data::Abs
     end
 end
 
-function write_MASS(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, header::HeaderGadget2, uMass)
+function write_MASS(f::Gadget2Stream, data::AbstractArray, header::HeaderGadget2, uMass)
     temp = 0
     for i in 1:6
         if header.mass[i] == 0.0 && header.npart[i] != 0
@@ -811,7 +811,7 @@ function write_MASS(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractAr
     end
 end
 
-function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, NumGas::Integer, uEntropy)
+function write_Entropy(f::Gadget2Stream, data::AbstractArray, NumGas::Integer, uEntropy)
     temp = NumGas * 4
     write(f, Int32(temp))
     for p in data
@@ -822,7 +822,7 @@ function write_Entropy(f::Union{IOStream,Stream{format"Gadget2"}}, data::Abstrac
     write(f, Int32(temp))
 end
 
-function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, NumGas::Integer, uDensity)
+function write_Density(f::Gadget2Stream, data::AbstractArray, NumGas::Integer, uDensity)
     temp = NumGas * 4
     write(f, Int32(temp))
     for p in data
@@ -833,7 +833,7 @@ function write_Density(f::Union{IOStream,Stream{format"Gadget2"}}, data::Abstrac
     write(f, Int32(temp))
 end
 
-function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, NumGas::Integer, uLength)
+function write_Hsml(f::Gadget2Stream, data::AbstractArray, NumGas::Integer, uLength)
     temp = NumGas * 4
     write(f, Int32(temp))
     for p in data
@@ -844,7 +844,7 @@ function write_Hsml(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractAr
     write(f, Int32(temp))
 end
 
-function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, NumTotal::Integer, uEnergyUnit)
+function write_POT(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer, uEnergyUnit)
     temp = 4 * NumTotal
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -857,7 +857,7 @@ function write_POT(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArr
     write(f, Int32(temp))
 end
 
-function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractArray, NumTotal::Integer, uAcc)
+function write_ACCE(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer, uAcc)
     temp = 4 * NumTotal * 3
     write(f, Int32(temp))
     for type in GadgetTypes
@@ -872,7 +872,7 @@ function write_ACCE(f::Union{IOStream,Stream{format"Gadget2"}}, data::AbstractAr
     write(f, Int32(temp))
 end
 
-function write_gadget2_particle(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data, units;
+function write_gadget2_particle(f::Gadget2Stream, header::HeaderGadget2, data, units;
         acc = false,
         pot = false,
     )
@@ -934,14 +934,14 @@ function write_gadget2(filename::AbstractString, data::AbstractArray, units = uG
     write_gadget2(filename, header, data, units; kw...)
 end
 
-function write_gadget2_format2_block(f::Union{IOStream,Stream{format"Gadget2"}}, name::String, NumBytes::Int64)
+function write_gadget2_format2_block(f::Gadget2Stream, name::String, NumBytes::Int64)
     write(f, Int32(8))
     write(f, name)
     write(f, Int32(8 + NumBytes))
     write(f, Int32(8))
 end
 
-function write_gadget2_format2(f::Union{IOStream,Stream{format"Gadget2"}}, header::HeaderGadget2, data::AbstractArray, units;
+function write_gadget2_format2(f::Gadget2Stream, header::HeaderGadget2, data::AbstractArray, units;
         acc = false,
         pot = false,
     )
