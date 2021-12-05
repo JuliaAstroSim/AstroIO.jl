@@ -138,8 +138,30 @@ function Gadget2Particle{T, I}(units::Array; id::I = zero(I), collection = STAR)
     )
 end
 
+function Gadget2Particle{T, I}(::Nothing; id::I = zero(I), collection = STAR) where {T<:AbstractFloat, I<:Integer}
+    return Gadget2Particle(
+        PVector(T), PVector(T), PVector(T),
+        zero(T), id, collection,
+        zero(I), zero(I), zero(I),
+        zero(T), zero(T),
+
+        zero(T),
+        zero(T), zero(T),
+        zero(T), zero(T), zero(I),
+        PVector(T),
+        zero(T), zero(T), zero(T),
+        zero(T),
+        zero(T),
+        zero(T),
+        zero(T),
+        zero(T)
+        # ChemicalComposition(0.0,0.0),
+    )
+end
+
 # TODO We could consider to change the signature of Gadget2Particle to have only two parametric types.
 
+# Default to Float64, Int64.
 function Gadget2Particle(args...; kw...)
     Gadget2Particle{Float64, Int64}(args...; kw... )
 end
@@ -334,12 +356,15 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
     return blocks
 end
 
+function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Nothing, fileunits::Array)
+    read_block!(f, b, data, units, nothing)
+end
 
-function read_block(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Array, fileunits::Array)
+function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Array, fileunits::Array)
     qty = name_mapper[b.label]
     arr = getproperty(data, qty)
-    source_units = get_units(qty, fileunits)
-    target_units = get_units(qty, units)
+    target_units = isnothing(units) ? NoUnits : get_units(qty, units)
+    source_units = isnothing(fileunits) ? NoUnits : get_units(qty, fileunits)
     dim = get_block_dim(b)
     T = b.data_type
     seek(f, b.position)
@@ -409,14 +434,10 @@ function read_gadget2(filename::AbstractString, units, fileunits = uGadget2)
     end
     # println(blocks)
     for b in blocks
-        read_block(f, b, data, units, fileunits)
+        read_block!(f, b, data, units, fileunits)
     end
     close(f)
     header, data
-end
-
-function convert(data::StructArray)
-
 end
 
 function decide_file_format(f::Gadget2Stream)
