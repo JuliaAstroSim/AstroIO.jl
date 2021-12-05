@@ -361,8 +361,11 @@ function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units
     read_block!(f, b, data, units, nothing)
 end
 
-function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Array, fileunits::Array)
-    qty = name_mapper[b.label]
+function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Union{Array, Nothing}, fileunits::Union{Array, Nothing})
+    qty = get(name_mapper, b.label, nothing)
+    if isnothing(qty)
+        return
+    end
     arr = getproperty(data, qty)
     target_units = isnothing(units) ? NoUnits : get_units(qty, units)
     source_units = isnothing(fileunits) ? NoUnits : get_units(qty, fileunits)
