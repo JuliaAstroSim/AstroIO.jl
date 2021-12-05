@@ -174,6 +174,7 @@ end
 
 const N_TYPE = length(instances(Collection))
 
+# To be substituted by a config file
 const name_mapper = Dict("POS " => :Pos,
                          "ID  " => :ID,
                          "VEL " => :Vel,
@@ -204,6 +205,8 @@ function get_units(field::Symbol, units::Array)
     return get(units_dict, field, x -> Unitful.NoUnits)(units)
 end
 
+# TODO the order here is different from the one in Table 2 of the Gadget2 User Guide
+# https://wwwmpa.mpa-garching.mpg.de/gadget/users-guide.pdf
 const gadget2_format1_names = ["HEAD", "POS ", "VEL ", "ID  ", "MASS",
                                "ENTR", "RHO ", "HSML", "POT ", "ACCE"]
 
@@ -386,7 +389,6 @@ function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units
     else
         error("Unknown array dimensionality: $dim")
     end
-    # getproperty(data, qty) = arr
 end
 
 function read_gadget2_header(f::Gadget2Stream, format::Integer)
@@ -423,6 +425,12 @@ Return a Tuple of header and particle data in snapshot file.
 """
 function read_gadget2(filename::AbstractString, units, fileunits = uGadget2)
     f = open(filename, "r")
+    header, data = read_gadget2(f, units, fileunits)
+    close(f)
+    header, data
+end
+
+function read_gadget2(f::Gadget2Stream, units, fileunits = uGadget2)
     format = decide_file_format(f)
     header = read_gadget2_header(f, format)
     blocks = get_blocks(f, format, header)
@@ -435,11 +443,9 @@ function read_gadget2(filename::AbstractString, units, fileunits = uGadget2)
     for k in 1:6
         data.Collection[indexes[k]+1:indexes[k+1]] .= collections[k]
     end
-    # println(blocks)
     for b in blocks
         read_block!(f, b, data, units, fileunits)
     end
-    close(f)
     header, data
 end
 
@@ -463,15 +469,9 @@ function get_block_format1(f::Gadget2Stream)
     data_size = peek(f, Int32)
     block_size = data_size + 2 * sizeof(Int32)
     data_start = block_start + sizeof(Int32)
-    # println("start: $block_start")
-    # println("data_size: $data_size")
     seek(f, block_start + data_size + sizeof(Int32))
     data_size_after_block = read(f, Int32)
-    # println("data_size2: $data_size_after_block")
     @assert data_size == data_size_after_block "data size before/after block data do not match"
-    # if data_size != data_size_after_block
-    #     error("Wrong location symbol while reading block '$(b.label)'\n")
-    # end
     # Move to the end
     seek(f, block_start + block_size)
     return Gadget2Block(missing, data_size, data_start)
@@ -496,7 +496,6 @@ function get_block_format2(f::Gadget2Stream)
     @assert data_size == data_size_after_block "In block $name: data size before/after block data do not match"
     return Gadget2Block(name, data_size, data_start)
 end
-
 
 
 # Read
