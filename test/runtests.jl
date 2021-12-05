@@ -60,10 +60,12 @@ end
     @test uPot == u"km^2*s^-2"
 
     h, d = read_gadget2("pot_acc.format2.gadget2", uGadget2, uGadget2)
-    @test d.Acc[20] == PVector(1216.8761f0,
-                               868.4943f0,
-                               874.938f0, uAcc)
-    @test d.Potential[20] == -37.11515808105469uPot
+    @test AstroIO.read_mass_from_header(h) == false
+    @test d.Acc[1] == PVector(100.51215f0, 146.3331f0, 22.542002f0, uAcc)
+    @test d.Potential[1] == -8.796568f0uPot
+    @test d.Mass[1] == 1.0f-8*uMass
+    @test d.Acc[20] == PVector(1216.8761f0, 868.4943f0, 874.938f0, uAcc)
+    @test d.Potential[20] == -37.115158f0uPot
     @test d.Mass[20] == 1.0f-8*uMass
 
     h, d = read_gadget2("pot_acc.format2.gadget2", uAstro, uGadget2)

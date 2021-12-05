@@ -347,11 +347,7 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
                     succ = true
                     break
                 catch e
-                    if isa(e, DomainError)
-                        continue
-                    else
-                        rethrow(e)
-                    end
+                    isa(e, DomainError) ? continue : rethrow(e)
                 end
             end
         end
@@ -397,6 +393,7 @@ function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, heade
     name = b.label
     qty = get(name_mapper, name, nothing)
     if isnothing(qty)
+        @warn "Cannot map \"$name \" block to any array in data. Skipping"
         return
     end
     arr = getproperty(data, qty)
@@ -1343,8 +1340,7 @@ end
 import FileIO: Stream, File
 
 function load(s::Stream{format"Gadget2"}, units = uAstro, fileunits = uGadget2)
-    header = read_gadget2_header(s)
-    data   = read_gadget2_particle(s, header, units, fileunits)
+    header, data = read_gadget2(s, units, fileunits)
     return header, data
 end
 
