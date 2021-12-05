@@ -263,7 +263,6 @@ function set_partlen!(block::Gadget2Block, npart::AbstractVector)
     return flag
 end
 
-using Combinatorics
 """
 Set up the particle types in the block, with a heuristic,
 which assumes that blocks are either fully present or not
