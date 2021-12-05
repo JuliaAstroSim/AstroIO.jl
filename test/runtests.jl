@@ -81,6 +81,8 @@ end
 
     @test !iszero(norm(average(d, :Acc)))
     @test !iszero(norm(average(d, :Potential)))
+
+    # TODO test for mass from header
 end
 
 @testset "FileIO" begin
