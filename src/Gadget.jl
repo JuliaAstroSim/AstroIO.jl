@@ -466,7 +466,7 @@ function get_block_format1(f::Gadget2Stream)
     # Structure of the block:
     # <SIZE><DATA><SIZE>
     block_start = position(f)
-    data_size = peek(f, Int32)
+    data_size = read(f, Int32)
     block_size = data_size + 2 * sizeof(Int32)
     data_start = block_start + sizeof(Int32)
     seek(f, block_start + data_size + sizeof(Int32))
