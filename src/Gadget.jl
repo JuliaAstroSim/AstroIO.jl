@@ -300,10 +300,16 @@ function get_block_dim(block::Gadget2Block)
     return block.partlen ÷ sizeof(block.data_type)
 end
 
-function treat_header!(block::Gadget2Block)
-
+function read_mass_from_header(header::HeaderGadget2)
+    flag = true
+    for i in eachindex(header.npart)
+        if header.npart[i] > 0 && header.mass[i] == 0.0
+            flag = false
+            break
+        end
+    end
+    flag
 end
-
 
 function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, header::HeaderGadget2)
     blocks = Vector{Gadget2Block}()
@@ -313,13 +319,16 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
     while !eof(f)
         block = get_block(f)
         if format == 1
-            block.label = gadget2_format1_names[counter] 
+            name = gadget2_format1_names[counter]
             counter +=1
+            # Do not create the mass block if we're going to read it from header  
+            name == "MASS" && read_mass_from_header(header) && continue
+            block.label = name
+        else
+            block.label == "MASS" && read_mass_from_header(header) && continue
         end
-        if block.label == "HEAD"
-            treat_header!(block)
-            continue
-        end
+
+        block.label == "HEAD" && continue
 
         succ = set_partlen!(block, header.npart)
         if !succ
@@ -359,21 +368,47 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
     return blocks
 end
 
-function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Nothing, fileunits::Array)
-    read_block!(f, b, data, units, nothing)
+function read_mass_block!(f::Gadget2Stream, arr::Array, header::HeaderGadget2, target_units::Units, source_units::Units)
+    start = 1
+    tail = header.npart[1]
+    for type in 1:6
+        if header.mass[type] == 0.0 # read from file
+            for i in start:tail
+                arr[i] = uconvert(target_units, read(f, Float32) * source_units)
+            end
+        else # set using header
+            for i in start:tail
+                arr[i] = uconvert(target_units, header.mass[type] * source_units)
+            end
+        end
+        start += header.npart[type]
+        if type < 6
+            tail += header.npart[type+1]
+        end
+    end
 end
 
-function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, units::Union{Array, Nothing}, fileunits::Union{Array, Nothing})
-    qty = get(name_mapper, b.label, nothing)
+
+function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, header::HeaderGadget2, units::Nothing, ::Array)
+    read_block!(f, b, data, header, units, nothing)
+end
+
+function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, header::HeaderGadget2, units::Union{Array, Nothing}, fileunits::Union{Array, Nothing})
+    name = b.label
+    qty = get(name_mapper, name, nothing)
     if isnothing(qty)
         return
     end
     arr = getproperty(data, qty)
     target_units = isnothing(units) ? NoUnits : get_units(qty, units)
     source_units = isnothing(fileunits) ? NoUnits : get_units(qty, fileunits)
-    dim = get_block_dim(b)
     T = b.data_type
     seek(f, b.position)
+    if name == "MASS"
+        read_mass_block!(f, arr, header, target_units, source_units)
+        return
+    end
+    dim = get_block_dim(b)
     if dim == 1
         for i in 1:length(data)
             arr[i] = uconvert(target_units, read(f, T) * source_units)
@@ -444,7 +479,7 @@ function read_gadget2(f::Gadget2Stream, units, fileunits = uGadget2)
         data.Collection[indexes[k]+1:indexes[k+1]] .= collections[k]
     end
     for b in blocks
-        read_block!(f, b, data, units, fileunits)
+        read_block!(f, b, data, header, units, fileunits)
     end
     header, data
 end
