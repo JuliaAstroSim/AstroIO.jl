@@ -118,19 +118,20 @@ function Gadget2Particle{T, I}(units::Array; id::I = zero(I), collection = STAR)
     uEnergy = getuEnergy(units)
     uEnergyUnit = getuEnergyUnit(units)
     uTemperature = getuTemperature(units)
+    uEntropy = getuEntropy(units)
     return Gadget2Particle(
         PVector(T, uLength), PVector(T, uVel), PVector(T, uAcc),
         zero(T) * uMass, id, collection,
         zero(I), zero(I), zero(I),
         zero(T) * uEnergyUnit, zero(T) * uAcc,
 
-        zero(T) * getuEntropy(units),
+        zero(T) * uEntropy,
         zero(T) * getuDensity(units), zero(T) * uLength,
         zero(T), zero(T), zero(I),
         PVector(T, uVel),
         zero(T) / uTime, zero(T) / uTime, zero(T) * uLength,
         zero(T) * getuPressure(units),
-        zero(T) * getuEntropy(units) / uTime,
+        zero(T) * uEntropy / uTime,
         zero(T) * uVel,
         zero(T) * uEnergyUnit,
         zero(T) * uTemperature
