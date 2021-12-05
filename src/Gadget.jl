@@ -487,7 +487,10 @@ function get_block_format2(f::Gadget2Stream)
     data_start = position(f)
     @assert data_start == block_start + 20 "Data starting position ($data_start) not 20 bytes away from block start ($block_start)"
     @assert block_size == data_size + 8 "In block $name: size ($block_size) != data_size + 8 ($(data_size+8))"
-    seek(f, block_start + block_size + 4 * sizeof(Int32))
+    # Move to the end
+    seek(f, block_start + 20 + data_size)
+    data_size_after_block = read(f, Int32)
+    @assert data_size == data_size_after_block "In block $name: data size before/after block data do not match"
     return Gadget2Block(name, data_size, data_start)
 end
 
