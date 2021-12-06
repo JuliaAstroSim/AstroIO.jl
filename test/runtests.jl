@@ -60,7 +60,8 @@ end
     @test uPot == u"km^2*s^-2"
 
     h, d = read_gadget2("pot_acc.format2.gadget2", uGadget2, uGadget2)
-    @test AstroIO.read_mass_from_header(h) == false
+    @test AstroIO.read_all_mass_from_header(h) == false
+    @test AstroIO.read_mass_from_header(h) == [nothing, nothing, nothing, nothing, false, nothing]
     @test d.Acc[1] == PVector(100.51215f0, 146.3331f0, 22.542002f0, uAcc)
     @test d.Potential[1] == -8.796568f0uPot
     @test d.Mass[1] == 1.0f-8*uMass
@@ -83,8 +84,15 @@ end
 
     @test !iszero(norm(average(d, :Acc)))
     @test !iszero(norm(average(d, :Potential)))
+end
 
-    # TODO test for mass from header
+@testset "MassFromHeader" begin
+    uMass = getuMass(uGadget2)
+    h, d = read_gadget2("gadget_no_mass", uAstro)
+    @test AstroIO.read_mass_from_header(h) == [true,nothing,nothing,nothing,nothing,nothing]
+    @test AstroIO.read_all_mass_from_header(h) == true
+    @test d.Mass[1] == 0.10506896f0u"Msun"
+    @test Float32(h.mass[1]) == Float32(ustrip(uMass, d.Mass[1]))
 end
 
 @testset "FileIO" begin
