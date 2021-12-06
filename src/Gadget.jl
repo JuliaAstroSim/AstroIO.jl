@@ -301,19 +301,24 @@ function get_block_dim(block::Gadget2Block)
 end
 
 function read_mass_from_header(header::HeaderGadget2)
-    flag = true
+    a = Vector{Union{Bool, Nothing}}(undef, N_TYPE)
+    fill!(a, nothing)
     for i in eachindex(header.npart)
-        if header.npart[i] > 0 && header.mass[i] == 0.0
-            flag = false
-            break
+        if header.npart[i] > 0
+            a[i] = header.mass[i] != 0.0 ? true : false
         end
     end
-    flag
+    a
 end
 
-function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, header::HeaderGadget2)
+read_all_mass_from_header(header::HeaderGadget2) = all(filter(!isnothing, read_mass_from_header(header)))
+read_any_mass_from_header(header::HeaderGadget2) = any(filter(!isnothing, read_mass_from_header(header)))
+
+function get_blocks(f::Gadget2Stream, format::Int, header::HeaderGadget2)
     blocks = Vector{Gadget2Block}()
     get_block = format == 1 ? get_block_format1 : get_block_format2
+    # There is no mass block if we're going to read all of the masses from header
+    format == 1 && read_all_mass_from_header(header) && filter!(e->e≠"MASS",gadget2_format1_names)
     counter = 1
     seekstart(f)
     while !eof(f)
@@ -321,11 +326,7 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
         if format == 1
             name = gadget2_format1_names[counter]
             counter +=1
-            # Do not create the mass block if we're going to read it from header  
-            name == "MASS" && read_mass_from_header(header) && continue
             block.label = name
-        else
-            block.label == "MASS" && read_mass_from_header(header) && continue
         end
 
         block.label == "HEAD" && continue
@@ -338,7 +339,7 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
             that blocks are either fully present or not for a
             given particle. It also has to try all
             possibilities of dimensions of array and data type.
-            """ 
+            """
             for (dim, tp) in ((1, Float32), (1, Float64), (3, Float32), (3, Float64))
                 try
                     block.data_type = tp
@@ -360,6 +361,8 @@ function get_blocks(f::Union{IOStream,Stream{format"Gadget2"}}, format::Int, hea
 
         push!(blocks, block)
     end
+    # Add an empty MASS block pointing to the current location (eof) if there is none (i.e. reading mass from header)
+    read_all_mass_from_header(header) && push!(blocks, Gadget2Block("MASS", 0, position(f)))
     seekstart(f)
     return blocks
 end
@@ -373,8 +376,10 @@ function read_mass_block!(f::Gadget2Stream, arr::Array, header::HeaderGadget2, t
                 arr[i] = uconvert(target_units, read(f, Float32) * source_units)
             end
         else # set using header
+            # println("reading $(header.mass[type]) from $start to $tail")
             for i in start:tail
-                arr[i] = uconvert(target_units, header.mass[type] * source_units)
+                # eltype cast is a workaround for this https://github.com/PainterQubits/Unitful.jl/issues/190
+                arr[i] = eltype(arr)(uconvert(target_units, header.mass[type] * source_units))
             end
         end
         start += header.npart[type]
@@ -384,7 +389,7 @@ function read_mass_block!(f::Gadget2Stream, arr::Array, header::HeaderGadget2, t
     end
 end
 
-
+# When units is nothing, ignore also fileunits
 function read_block!(f::Gadget2Stream, b::Gadget2Block, data::StructArray, header::HeaderGadget2, units::Nothing, ::Array)
     read_block!(f, b, data, header, units, nothing)
 end
