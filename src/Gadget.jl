@@ -453,7 +453,7 @@ function read_gadget2_pos_kernel(f::Union{IOStream,Stream{format"Gadget2"}}, hea
     NumTotal = sum(header.npart)
     
     if isnothing(units)
-        uLength = 1.0
+        uLength = nothing
         fileuLength = 1.0
     else
         uLength = getuLength(units)
