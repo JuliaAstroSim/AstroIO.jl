@@ -1029,8 +1029,6 @@ function write_gadget2_format2(filename::AbstractString, data::AbstractArray, un
 end
 
 # FileIO API
-import FileIO: Stream, File
-
 function load(s::Stream{format"Gadget2"}, units = uAstro, fileunits = uGadget2)
     header, data = read_gadget2(s, units, fileunits)
     return header, data

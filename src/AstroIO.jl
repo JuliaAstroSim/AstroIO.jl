@@ -11,11 +11,13 @@ using ProgressMeter
 using BangBang
 using StructArrays
 using Combinatorics: permutations
+using ConfParser
 
 @reexport using PhysicalParticles
 
 import Base: show, write
 import Unitful: Units
+import FileIO: Stream, File
 
 export
     # Base
@@ -58,6 +60,10 @@ export
     # Houdini
     write_houdini,
 
+    # ConfParser
+    loadconfig,
+    loadfromconfig,
+
     # Tools
     renamereplace,
     renamesuffixs
@@ -82,5 +88,6 @@ include("HDF5.jl")
 include("Houdini.jl")
 include("PrettyPrint.jl")
 include("Tools.jl")
+include("ConfParser.jl")
 
 end # module
