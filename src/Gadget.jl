@@ -610,7 +610,7 @@ function read_gadget2_pos_kernel(f::Gadget2Stream, header::HeaderGadget2, units,
     NumTotal = sum(header.npart)
     
     if isnothing(units)
-        uLength = 1.0
+        uLength = nothing
         fileuLength = 1.0
     else
         uLength = getuLength(units)
@@ -651,6 +651,11 @@ function read_gadget2_pos_kernel_format2(f::Gadget2Stream, header::HeaderGadget2
     return nothing
 end
 
+"""
+    read_gadget2_pos(filename::AbstractString, units, fileunits = uGadget2)
+
+Only read position block and return a StructArray.
+"""
 function read_gadget2_pos(filename::AbstractString, units, fileunits = uGadget2)
     f = open(filename, "r")
 
@@ -826,7 +831,7 @@ function write_Density(f::Gadget2Stream, data::AbstractArray, NumGas::Integer, u
     write(f, Int32(temp))
     for p in data
         if p.Collection == GAS
-            write(f, Float32(ustrip(uDensity, p.Density) / 1.0e10))
+            write(f, Float32(ustrip(uDensity, p.Density)))
         end
     end
     write(f, Int32(temp))
@@ -1024,8 +1029,6 @@ function write_gadget2_format2(filename::AbstractString, data::AbstractArray, un
 end
 
 # FileIO API
-import FileIO: Stream, File
-
 function load(s::Stream{format"Gadget2"}, units = uAstro, fileunits = uGadget2)
     header, data = read_gadget2(s, units, fileunits)
     return header, data
