@@ -10,6 +10,7 @@ using Distributed
 using ProgressMeter
 using BangBang
 using StructArrays
+using Combinatorics: permutations
 
 @reexport using PhysicalParticles
 
