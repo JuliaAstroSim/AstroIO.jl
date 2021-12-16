@@ -139,12 +139,13 @@ end
     @test isfile("test_renamesuffixs.ok")
 end
 
-#=
-include("AstroIO.jl\\src\\AstroIO.jl"); using .AstroIO
+@testset "ConfParser" begin
+    ioconfig = loadconfig("conf-jld2.ini")
+    data = loadfromconfig(ioconfig)
+    @test length(data) == 10
 
-h, d = read_gadget2("AstroIO.jl\\test\\gassphere_littleendian.gadget2")
-write_gadget2("AstroIO.jl\\test\\testGadget.gadget2", h, d)
-
-h, d = load("AstroIO.jl\\test\\gassphere_littleendian.gadget2")
-save("AstroIO.jl\\test\\testFileIO.gadget2", h, d)
-=#
+    #TODO Gadget2
+    ioconfig = loadconfig("conf-gadget2.ini")
+    # header, data = load(ioconfig)
+    # @test
+end
