@@ -21,12 +21,13 @@ function write_csv(filename::AbstractString, particles::Union{Array{T,N}, Struct
 
     write(f, "#id | x y", axisunit(uLength), " | vx vy", axisunit(uVel), " | ax ay oldacc", axisunit(uAcc),
              " | m", axisunit(uMass), " | Ti_endstep Ti_begstep GravCost | Potential", axisunit(uPotential), " | \n",
-             "#Entropy", axisunit(uEntropy), " | Density", axisunit(uDensity2D), " | Hsml", axisunit(uLength),
-             " | rvx rvy", axisunit(uVel), " | divv", axisunit(uTimeInv), " | curlv", axisunit(uTimeInv), " | dHsmlRho", axisunit(uLength), " | \n",
-             "#Pressure", axisunit(uPressure), " | DtEntropy", axisunit(uDtEntropy), " | MaxSignalVel", axisunit(uVel), " |\n")
+             # "#Entropy", axisunit(uEntropy), " | Density", axisunit(uDensity2D), " | Hsml", axisunit(uLength),
+             # " | rvx rvy", axisunit(uVel), " | divv", axisunit(uTimeInv), " | curlv", axisunit(uTimeInv), " | dHsmlRho", axisunit(uLength), " | \n",
+             # "#Pressure", axisunit(uPressure), " | DtEntropy", axisunit(uDtEntropy), " | MaxSignalVel", axisunit(uVel), " |\n"
+             )
     for p in particles
         buffer = @sprintf(
-                "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+                "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f\n",
                 p.ID,
                 ustrip(uLength, p.Pos.x),
                 ustrip(uLength, p.Pos.y),
@@ -37,19 +38,20 @@ function write_csv(filename::AbstractString, particles::Union{Array{T,N}, Struct
                 ustrip(uMass, p.Mass),
                 p.Ti_endstep,
                 p.Ti_begstep,
+                p.GravCost,
                 ustrip(uPotential, p.Potential),
 
-                ustrip(uEntropy, p.Entropy),
-                ustrip(uDensity2D, p.Density),
-                ustrip(uLength, p.Hsml),
-                ustrip(uVel, p.RotVel.x),
-                ustrip(uVel, p.RotVel.y),
-                ustrip(uTimeInv, p.DivVel),
-                ustrip(uTimeInv, p.CurlVel),
-                ustrip(uLength, p.dHsmlRho),
-                ustrip(uPressure, p.Pressure),
-                ustrip(uDtEntropy, p.DtEntropy),
-                ustrip(uVel, p.MaxSignalVel)
+                # ustrip(uEntropy, p.Entropy),
+                # ustrip(uDensity2D, p.Density),
+                # ustrip(uLength, p.Hsml),
+                # ustrip(uVel, p.RotVel.x),
+                # ustrip(uVel, p.RotVel.y),
+                # ustrip(uTimeInv, p.DivVel),
+                # ustrip(uTimeInv, p.CurlVel),
+                # ustrip(uLength, p.dHsmlRho),
+                # ustrip(uPressure, p.Pressure),
+                # ustrip(uDtEntropy, p.DtEntropy),
+                # ustrip(uVel, p.MaxSignalVel)
             )
         write(f, buffer)
     end
@@ -81,12 +83,13 @@ function write_csv(filename::AbstractString, particles::Union{Array{T,N}, Struct
 
     write(f, "#id | x y z", axisunit(uLength), " | vx vy vz", axisunit(uVel), " | ax ay az oldacc", axisunit(uAcc),
              " | m", axisunit(uMass), " | Ti_endstep Ti_begstep GravCost | Potential", axisunit(uPotential), " | \n",
-             "#Entropy", axisunit(uEntropy), " | Density", axisunit(uDensity), " | Hsml", axisunit(uLength),
-             " | rvx rvy rvz", axisunit(uVel), " | divv", axisunit(uTimeInv), " | curlv", axisunit(uTimeInv), " | dHsmlRho", axisunit(uLength), " | \n",
-             "#Pressure", axisunit(uPressure), " | DtEntropy", axisunit(uDtEntropy), " | MaxSignalVel", axisunit(uVel), " |\n")
+            #  "#Entropy", axisunit(uEntropy), " | Density", axisunit(uDensity), " | Hsml", axisunit(uLength),
+            #  " | rvx rvy rvz", axisunit(uVel), " | divv", axisunit(uTimeInv), " | curlv", axisunit(uTimeInv), " | dHsmlRho", axisunit(uLength), " | \n",
+            #  "#Pressure", axisunit(uPressure), " | DtEntropy", axisunit(uDtEntropy), " | MaxSignalVel", axisunit(uVel), " |\n"
+             )
     for p in particles
         buffer = @sprintf(
-                "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+                "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d,%f,%f\n",
                 p.ID,
                 ustrip(uLength, p.Pos.x),
                 ustrip(uLength, p.Pos.y),
@@ -100,20 +103,21 @@ function write_csv(filename::AbstractString, particles::Union{Array{T,N}, Struct
                 ustrip(uMass, p.Mass),
                 p.Ti_endstep,
                 p.Ti_begstep,
+                p.GravCost,
                 ustrip(uPotential, p.Potential),
 
-                ustrip(uEntropy, p.Entropy),
-                ustrip(uDensity, p.Density),
-                ustrip(uLength, p.Hsml),
-                ustrip(uVel, p.RotVel.x),
-                ustrip(uVel, p.RotVel.y),
-                ustrip(uVel, p.RotVel.z),
-                ustrip(uTimeInv, p.DivVel),
-                ustrip(uTimeInv, p.CurlVel),
-                ustrip(uLength, p.dHsmlRho),
-                ustrip(uPressure, p.Pressure),
-                ustrip(uDtEntropy, p.DtEntropy),
-                ustrip(uVel, p.MaxSignalVel)
+                # ustrip(uEntropy, p.Entropy),
+                # ustrip(uDensity, p.Density),
+                # ustrip(uLength, p.Hsml),
+                # ustrip(uVel, p.RotVel.x),
+                # ustrip(uVel, p.RotVel.y),
+                # ustrip(uVel, p.RotVel.z),
+                # ustrip(uTimeInv, p.DivVel),
+                # ustrip(uTimeInv, p.CurlVel),
+                # ustrip(uLength, p.dHsmlRho),
+                # ustrip(uPressure, p.Pressure),
+                # ustrip(uDtEntropy, p.DtEntropy),
+                # ustrip(uVel, p.MaxSignalVel)
             )
         write(f, buffer)
     end
