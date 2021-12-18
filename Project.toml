@@ -25,6 +25,8 @@ UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 
 [compat]
 BangBang = "≥ 0.3"
+Combinatorics = "≥ 1"
+ConfParser = "≥ 0.1"
 CSV = "≥ 0.9"
 FileIO = "≥ 1"
 HDF5 = "≥ 0.15"
