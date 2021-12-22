@@ -460,19 +460,21 @@ Return a Tuple of header and particle data in snapshot file.
 `units` is supported by `PhysicalParticles`: `uSI`, `uCGS`, `uAstro`, `uGadget2`, `nothing`.
 `fileunits` is the internal units in the file, and will be converted to `units` while reading the file.
 """
-function read_gadget2(filename::AbstractString, units, fileunits = uGadget2)
+function read_gadget2(filename::AbstractString, units, fileunits = uGadget2; kw...)
     open(filename, "r") do f
-        read_gadget2(f, units, fileunits)
+        read_gadget2(f, units, fileunits; kw...)
     end
 end
 
-function read_gadget2(f::Gadget2Stream, units, fileunits = uGadget2)
+function read_gadget2(f::Gadget2Stream, units, fileunits = uGadget2;
+        type = AstroIO.Gadget2Particle,
+    )
     format = decide_file_format(f)
     header = read_gadget2_header(f, format)
     blocks = get_blocks(f, format, header)
     dtypes = get_data_types(blocks)
     tot_part = sum(header.npart)
-    data = StructArray([AstroIO.Gadget2Particle(dtypes..., units) for i=1:tot_part])
+    data = StructArray([type(dtypes..., units) for i=1:tot_part])
     # Setup collections
     indexes = [0, cumsum(header.npart)...]
     collections = instances(Collection)
