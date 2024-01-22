@@ -1,5 +1,6 @@
 module AstroIO
 
+using PrecompileTools
 using Reexport
 using Unitful, UnitfulAstro
 using FileIO, JLD2, HDF5
@@ -90,4 +91,5 @@ include("PrettyPrint.jl")
 include("Tools.jl")
 include("ConfParser.jl")
 
+include("precompile.jl")
 end # module
