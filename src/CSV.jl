@@ -1,3 +1,23 @@
+"""
+    write_csv(filename, particles, units = uAstro)
+    write_csv(filename, particles, units = uAstro)   # 3D particles (Star / Star3D-like)
+    write_csv(filename, data::Union{Array,StructArray}, units = uAstro)
+
+Write particle data to a CSV file. The output suffix, header columns and
+per-row field set depend on the type of `particles`:
+
+- `Star2D` (or any `T <: Star2D`): writes `"$filename.SPHGas2D.csv"`
+  with columns `id, x, y, vx, vy, ax, ay, oldacc, m, Ti_endstep,
+  Ti_begstep, GravCost, Potential` (lengths/velocities/accelerations are
+  converted from `units`).
+- 3D `Star` (or any `T <: Star`): writes `"$filename.SPHGas.csv"`
+  with the same columns extended to 3 spatial dimensions.
+- A generic `Array` / `StructArray` of mixed types: writes `"$filename.csv"`
+  using a 5-column (point-only) or 8-column (full particle) header
+  depending on the element type.
+
+Pass `units = nothing` to skip unit conversion and store raw numbers.
+"""
 function write_csv(filename::AbstractString, particles::Union{Array{T,N}, StructArray{T,N,NT,Tu}}, units = uAstro) where T <: Star2D where N where NT where Tu
     f = open("$filename.SPHGas2D.csv", "w")
 

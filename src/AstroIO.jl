@@ -71,14 +71,60 @@ export
 
 
 
-GadgetTypes = [GAS, HALO, DISK, BULGE, STAR, BLACKHOLE]
-GadgetKeys = ["gases", "haloes", "disks", "bulges", "stars", "blackholes"]
+"""
+    GadgetTypes
+
+Canonical ordering of the six Gadget-2 particle collections:
+`GAS`, `HALO`, `DISK`, `BULGE`, `STAR`, `BLACKHOLE`. The integer index of
+each element matches the block ordering expected by the Gadget-2 binary
+header (`npart[1]` = gas, `npart[2]` = halo, …, `npart[6]` = black hole).
+"""
+const GadgetTypes = [GAS, HALO, DISK, BULGE, STAR, BLACKHOLE]
+
+"""
+    GadgetKeys
+
+Default JLD2 / dictionary keys used by the Gadget-2 I/O helpers when an
+ordered collection of particle groups is written as a `Dict`. They mirror
+[`GadgetTypes`](@ref) one-to-one (`"gases"` ↔ GAS, `"haloes"` ↔ HALO, …).
+"""
+const GadgetKeys = ["gases", "haloes", "disks", "bulges", "stars", "blackholes"]
 
 
+"""
+    AbstractOutputType
+
+Abstract supertype for the singleton tags used to dispatch on the source
+format of batch I/O helpers (for example
+[`write_houdini`](@ref)'s series-of-snapshots overload).
+
+Concrete subtypes are [`gadget2`](@ref), [`hdf5`](@ref) and [`jld2`](@ref).
+Use `gadget2()` / `hdf5()` / `jld2()` as a lightweight value rather than the
+type itself.
+"""
 abstract type AbstractOutputType end
 
+"""
+    gadget2 <: AbstractOutputType
+
+Sentinel value selecting the Gadget-2 binary format in batch I/O helpers
+that accept a source-format argument (for example the multi-snapshot
+overload of [`write_houdini`](@ref)).
+"""
 struct gadget2 <: AbstractOutputType end
+
+"""
+    hdf5 <: AbstractOutputType
+
+Sentinel value selecting the HDF5 snapshot format in batch I/O helpers.
+"""
 struct hdf5 <: AbstractOutputType end
+
+"""
+    jld2 <: AbstractOutputType
+
+Sentinel value selecting the JLD2 format in batch I/O helpers.
+"""
 struct jld2 <: AbstractOutputType end
 
 include("Gadget.jl")

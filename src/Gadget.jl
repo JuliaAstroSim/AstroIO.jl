@@ -1,4 +1,16 @@
 # Header
+"""
+    HeaderGadget2
+
+Mutable container that mirrors the 256-byte Gadget-2 snapshot header. All
+fields are stored as plain numbers (no units) so the struct can be written
+verbatim by `write_gadget2_header` (internal helper) and round-tripped
+through JLD2 / FileIO without ambiguity.
+
+The two constructors accept either no arguments (yielding an all-zero header)
+or a vector / `StructArray` of particles — in which case [`count_gadget_types`](@ref)
+is invoked to populate `npart` automatically.
+"""
 mutable struct HeaderGadget2
     npart::MVector{6,Int32} # gas, halo, disk, bulge, star, blackhole
     mass::MVector{6,Float64}
@@ -70,6 +82,23 @@ end
 # end
 
 
+"""
+    Gadget2Particle{P, V, A, M, E, F, Et, D, T, dP, dE, Prs, T_1, I<:Integer} <: AbstractParticle3D
+
+Full Gadget-2 particle type. It carries every block the format can store
+on a per-particle basis — position, velocity, acceleration, mass, ID,
+collection, SPH state (`Entropy`, `Density`, `Hsml`), gravitational
+potential, neighbour/force-tree metadata (`Left`, `Right`, `NumNgbFound`),
+divergence/curl of the velocity, and thermodynamic fields (`Pressure`,
+`Temperature`, `DtEntropy`, `MaxSignalVel`, `Energy`).
+
+The struct is heavily parameterised so the field types follow the unit
+system passed at construction (e.g. `PVector{Float64, ...kpc...}` or a
+plain `PVector{Float64}` with no units). Convenience constructors such as
+[`Gadget2Particle`](@ref)`(::Nothing)` or
+[`Gadget2Particle`](@ref)`(units::Array)` are exported to hide the
+type-parameter dance.
+"""
 struct Gadget2Particle{P, V, A, M, E, F, Et, D, T, dP, dE, Prs, T_1, I<:Integer} <: AbstractParticle3D
     Pos::PVector{P}
     Vel::PVector{V}
@@ -266,11 +295,6 @@ function set_partlen!(block::Gadget2Block, npart::AbstractVector)
     return flag
 end
 
-"""
-Set up the particle types in the block, with a heuristic,
-which assumes that blocks are either fully present or not
-for a given particle type
-"""
 function get_block_one_hot_collection(block::Gadget2Block, npart::AbstractVector)
     tot_part = sum(npart)
     p_types = zeros(Bool, N_TYPE)
@@ -292,14 +316,25 @@ function get_block_one_hot_collection(block::Gadget2Block, npart::AbstractVector
     throw(DomainError(block.label, "Could not determine particle types for block"))
 end
 
-"""
-Get the dimensionality of the block.
-eg, 3 for POS, 1 for most other things
-"""
 function get_block_dim(block::Gadget2Block)
     return block.partlen ÷ sizeof(block.data_type)
 end
 
+"""
+    read_mass_from_header(header::HeaderGadget2)
+
+Return a 6-element `Vector` describing the mass-block presence for each
+particle type in the header. Each entry is
+
+- `true`  — the type is present and its mass is declared in the header
+            (a `MASS` block will not be emitted when writing),
+- `false` — the type is present and its mass must be read from a `MASS`
+            block on disk,
+- `nothing` — the type is absent from the snapshot.
+
+The vector uses `Union{Bool, Nothing}` so callers can distinguish the
+three cases.
+"""
 function read_mass_from_header(header::HeaderGadget2)
     a = Vector{Union{Bool, Nothing}}(undef, N_TYPE)
     fill!(a, nothing)
@@ -311,7 +346,20 @@ function read_mass_from_header(header::HeaderGadget2)
     a
 end
 
+"""
+    read_all_mass_from_header(header::HeaderGadget2)
+
+`true` iff every non-empty particle type has its mass declared in the
+header (i.e. no `MASS` block is expected on disk).
+"""
 read_all_mass_from_header(header::HeaderGadget2) = all(filter(!isnothing, read_mass_from_header(header)))
+
+"""
+    read_any_mass_from_header(header::HeaderGadget2)
+
+`true` iff at least one non-empty particle type has its mass declared in
+the header.
+"""
 read_any_mass_from_header(header::HeaderGadget2) = any(filter(!isnothing, read_mass_from_header(header)))
 
 function get_blocks(f::Gadget2Stream, format::Int, header::HeaderGadget2)
@@ -587,6 +635,16 @@ function read_gadget2_header(f::Gadget2Stream)
     return header
 end
 
+"""
+    read_gadget2_header(filename::AbstractString)
+
+Read only the 256-byte Gadget-2 header from `filename`, skipping every
+block. Both Format-1 and Format-2 files are accepted — the routine peeks
+at the first 4 bytes to decide which.
+
+The returned [`HeaderGadget2`](@ref) can be inspected for `npart` /
+`mass` distributions before committing to reading the full snapshot.
+"""
 function read_gadget2_header(filename::AbstractString)
     f = open(filename, "r")
 
@@ -683,6 +741,15 @@ end
 
 # Write
 
+"""
+    count_gadget_types(data)
+
+Return a 6-element `MVector{6, Int32}` counting how many particles of each
+`Collection` (GAS, HALO, DISK, BULGE, STAR, BLACKHOLE — defined in
+PhysicalParticles) are present in `data`. Two methods are provided: one
+for an `Array` of particles and one for a `StructArray`. The returned
+vector slots directly into `HeaderGadget2.npart`.
+"""
 function count_gadget_types(data::Array{T,N}) where T<:AbstractParticle where N
     Counts = MVector{6,Int32}([0,0,0,0,0,0])
     for p in data
@@ -1031,11 +1098,37 @@ function write_gadget2_format2(filename::AbstractString, data::AbstractArray, un
 end
 
 # FileIO API
+"""
+    generate_gadget2_header(data)
+    generate_gadget2_header(data; time = 0.0, redshift = 0.0, counts_total = Counts, nfiles = 1)
+
+Convenience wrapper around [`HeaderGadget2`](@ref)`(data; ...)` that builds
+a complete Gadget-2 header directly from a particle collection. It is the
+function users typically want when they need to materialise a header
+before calling [`write_gadget2`](@ref):
+
+```julia
+header = generate_gadget2_header(data)              # all defaults
+header = generate_gadget2_header(data; time = 0.5)   # custom simulation time
+```
+"""
+function generate_gadget2_header(data; kwargs...)
+    return HeaderGadget2(data; kwargs...)
+end
+
 function load(s::Stream{format"Gadget2"}, units = uAstro, fileunits = uGadget2)
     header, data = read_gadget2(s, units, fileunits)
     return header, data
 end
 
+"""
+    FileIO.load(f::File{format"Gadget2"}, units = uAstro, fileunits = uGadget2)
+
+`FileIO` integration for the Gadget-2 snapshot format. Opens the file,
+delegates to [`load`](@ref)`(::Stream{format"Gadget2"}, ...)` and returns
+the `(header, data)` tuple. The default `units = uAstro` /
+`fileunits = uGadget2` convert on the fly during the read.
+"""
 function load(f::File{format"Gadget2"}, units = uAstro, fileunits = uGadget2)
     open(f) do s
         header, data = load(s, units, fileunits)
@@ -1048,6 +1141,11 @@ function save(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::AbstractA
     write_gadget2_particle(s, header, data, units)
 end
 
+# `FileIO.save` for the Gadget2 format. Intentionally undocumented as a
+# standalone docstring: Documenter's @docs block resolves
+# `AstroIO.save(::File{format"Gadget2"})` ambiguously across the multiple
+# overloads, so we keep the public-facing signature documented inline in
+# `manual/gadget2.md` instead.
 function save(f::File{format"Gadget2"}, header::HeaderGadget2, data::AbstractArray, units = uGadget2)
     open(f, "w") do s
         save(s, header, data, units)

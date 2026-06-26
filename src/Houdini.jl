@@ -52,6 +52,15 @@ function write_houdini_data(f::IOStream, data, time::Float64, units = uAstro;
     flush(f)
 end
 
+"""
+    write_houdini(filename::AbstractString, data, time::Float64, units = uAstro)
+
+Write a single Houdini Geometry Spreadsheet (`.hcsv`) snapshot to
+`filename`. The CSV header (`id,Px,Py,Pz,Vx,Vy,Vz,time` for full
+particles, or `id,Px,Py,Pz,time` for plain points) is written
+automatically from the type of `data`. Use [`write_houdini_append`](@ref)
+to extend an existing file without rewriting the header.
+"""
 function write_houdini(filename::AbstractString, data, time::Float64, units = uAstro)
     f = open(filename, "w")
     write_houdini_header(f, data)
@@ -60,6 +69,13 @@ function write_houdini(filename::AbstractString, data, time::Float64, units = uA
     return status
 end
 
+"""
+    write_houdini_append(filename::AbstractString, data, time::Float64, units = uAstro)
+
+Append `data` to an existing `.hcsv` file as a new batch of rows at time
+`time`. The header is **not** rewritten — the file must already have one
+written by [`write_houdini`](@ref).
+"""
 function write_houdini_append(filename::AbstractString, data, time::Float64, units = uAstro)
     f = open(filename, "a")
     status = write_houdini_data(f, data, time, units)
@@ -67,6 +83,25 @@ function write_houdini_append(filename::AbstractString, data, time::Float64, uni
     return status
 end
 
+"""
+    write_houdini(OutputFile, folder, filenamebase, Counts, suffix, FileType, units = uAstro;
+                  times = Counts, time_ratio = 1.0, pos_ratio = 1.0, vel_ratio = 1.0)
+
+Batch overload: read a series of snapshots located in `folder` whose
+filenames are built as `string(filenamebase, sprintf("%04d", Counts[i]), suffix)`
+and write them all to a single `OutputFile` `.hcsv`. `FileType` selects
+the source format and accepts [`gadget2`](@ref) or [`jld2`](@ref) (see
+[`AbstractOutputType`](@ref)).
+
+Keyword arguments:
+
+- `times = Counts` — output time for each snapshot (defaults to the
+  integer counts).
+- `time_ratio` — multiplicative factor applied to every entry of `times`.
+- `pos_ratio`  — multiplicative factor applied to positions (useful for
+  unit conversion such as kpc → Mpc).
+- `vel_ratio`  — multiplicative factor applied to velocities.
+"""
 function write_houdini(OutputFile::AbstractString, folder::AbstractString, filenamebase::AbstractString,
                        Counts::Array{Int64,1}, suffix::AbstractString,
                        FileType::AbstractOutputType, units = uAstro;

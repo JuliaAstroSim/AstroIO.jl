@@ -93,7 +93,9 @@ data = read("NoHeader.jld2")
 - Trees: [PhysicalTrees.jl](https://github.com/JuliaAstroSim/PhysicalTrees.jl)
 - Meshes: [PhysicalMeshes.jl](https://github.com/JuliaAstroSim/PhysicalMeshes.jl)
 - Plotting: [AstroPlot.jl](https://github.com/JuliaAstroSim/AstroPlot.jl)
-- Simulation: [ISLENT](https://github.com/JuliaAstroSim/ISLENT)
+- [AstroNbodySim.jl](https://github.com/JuliaAstroSim/AstroNbodySim.jl) — gravitational N-body simulations, glue layer, and parallel runtime
+- Simulation of wave dark matter: [WaveDM.jl](https://github.com/JuliaAstroSim/WaveDM.jl)
+
 
 ## Contribution
 

@@ -24,7 +24,7 @@ makedocs(
     format = Documenter.HTML(
         # Use clean URLs, unless built as a "local" build
         prettyurls = !("local" in ARGS),
-        canonical = "https://juliaastrosims.github.io/AstroIO.jl/dev/",
+        canonical = "https://juliaastrosim.github.io/AstroIO.jl/dev/",
         assets = ["assets/alpha_small.ico"],
         analytics = "UA-153693590-1",
         highlights = ["llvm", "yaml"],
@@ -32,21 +32,28 @@ makedocs(
     clean = false,
     sitename = "AstroIO.jl",
     authors = "islent",
-    linkcheck = !("skiplinks" in ARGS),
+    # `linkcheck = true` shells out to curl and fails the build when the
+    # host cannot reach the internet (e.g. behind a firewall / sandbox).
+    # Enable explicitly with `julia docs/make.jl checklinks`, or skip
+    # explicitly with `julia docs/make.jl skiplinks`. The default is off
+    # so the local build never fails for network reasons.
+    linkcheck = "checklinks" in ARGS,
     pages = [
         "Home" => "index.md",
         "Manual" => Any[
             "manual/guide.md",
             "manual/gadget2.md",
+            "manual/csv.md",
+            "manual/jld2.md",
+            "manual/hdf5.md",
+            "manual/houdini.md",
+            "manual/confparser.md",
             "manual/tools.md",
         ],
         "Library" => Any[
             "lib/Methods.md",
         ],
-        #"contributing.md",
     ],
-    #strict = !("strict=false" in ARGS),
-    #doctest = ("doctest=only" in ARGS) ? :only : true,
 )
 
 deploydocs(
