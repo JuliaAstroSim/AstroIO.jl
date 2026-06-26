@@ -15,3 +15,8 @@ test/testFileIO.gadget2
 test/pot_acc.format2.test.gadget2
 
 docs/build
+test/*.hcsv
+test/test_renamereplace_new.ok
+test/test_renamereplace_new.txt
+test/testFormat1.gadget2
+test/testFormat2AutoHeader.gadget2

@@ -2,6 +2,11 @@ rm testcsv*
 rm testjld*
 rm testFileIO*
 rm testGadget*
+rm testFormat1.gadget2
+rm testFormat2AutoHeader.gadget2
+rm pot_acc.format2.test.gadget2
 rm gadget2.format2
 rm test_rename*
+rm test_renamereplace*
 rm ramses.csv
+rm testHoudini*
