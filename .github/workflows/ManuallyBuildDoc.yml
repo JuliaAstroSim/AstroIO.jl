@@ -1,24 +1,26 @@
 name: ManuallyBuildDoc
 
-on: 
+on:
   [workflow_dispatch]
 
-# 64-bit Julia only
+# `julia-actions/julia-docdeploy@v1` invokes `julia docs/make.jl` itself, which
+# in turn calls both `makedocs` and `deploydocs`. With `GITHUB_TOKEN` available
+# (via the `contents: write` permission) Documenter.jl detects the GitHub
+# Actions environment and pushes the rendered docs to the `gh-pages` branch
+# using the auto-injected token — no `DOCUMENTER_KEY` SSH secret required.
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: julia-actions/setup-julia@latest
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
         with:
-          version: '1.12.6'
-      - run: julia --project=docs -e '
-          using Pkg;
-          Pkg.add("Documenter");
-          Pkg.develop(PackageSpec(; path=pwd()));
-          Pkg.instantiate();'
-      - name: Build and deploy doc
+          version: '1.12'
+      - name: Install dependencies and deploy documentation
+        uses: julia-actions/julia-docdeploy@v1
         env:
-          #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Deploying to else where, so use SSH instead
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-        run: julia --project=docs --color=yes docs/make.jl
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_VERSION: 0.27.25

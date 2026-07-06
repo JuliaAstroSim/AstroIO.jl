@@ -2,8 +2,8 @@
 Compile with:
 julia --project=docs/ --color=yes docs/make.jl
 
-Generate key:
-DocumenterTools.genkeys(user="JuliaAstroSim", repo="git@github.com:JuliaAstroSim/AstroIO.jl.git")
+Deployment is handled out-of-band by the `julia-actions/julia-docdeploy`
+GitHub Action (see `.github/workflows/ManuallyBuildDoc.yml`).
 """
 
 using Documenter
