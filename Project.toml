@@ -1,7 +1,7 @@
 name = "AstroIO"
 uuid = "c85a633c-0c3f-44a2-bffe-7f9d0681b3e7"
-authors = ["islent <leoislent@gmail.com>"]
 version = "0.1.4"
+authors = ["islent <leoislent@gmail.com>"]
 
 [deps]
 BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
@@ -26,7 +26,7 @@ UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 
 [compat]
 BangBang = "0.3, 0.4, 0.5"
-CSV = "0.9, 0.10"
+CSV = "0.9, 0.10, 1"
 Combinatorics = "1"
 ConfParser = "0.1"
 FileIO = "1"
