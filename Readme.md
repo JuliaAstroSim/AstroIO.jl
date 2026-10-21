@@ -74,11 +74,11 @@ write_csv("output", csv) # No suffix
 ### Save and load with JLD2
 
 ```julia
-write_gadget2_jld("output.jld2", header, data, uGadget2)
+write_gadget2_jld("output.jld2", header, data)
 write_jld("NoHeader.jld2", data)
 
 header, data = read_gadget2_jld("output.jld2")
-data = read("NoHeader.jld2")
+data = read_jld("NoHeader.jld2")
 
 # Or simply use JLD2 interfaces
 @load "NoHeader.jld2"

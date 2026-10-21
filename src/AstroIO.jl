@@ -20,6 +20,9 @@ import Base: show, write
 import Unitful: Units
 import FileIO: Stream, File
 
+# 写入侧：units === nothing 表示“写原始数值”，此时直接去掉单位而不做换算
+ustrip_or_raw(units, x) = isnothing(units) ? ustrip(x) : ustrip(units, x)
+
 export
     # Base
     show,
@@ -31,6 +34,7 @@ export
 
     # Gadget2
     HeaderGadget2,
+    Gadget2Particle,
     count_gadget_types,
     generate_gadget2_header,
     read_gadget2, write_gadget2,
@@ -38,6 +42,10 @@ export
     write_gadget2_format2,
 
     read_gadget2_pos,
+    read_gadget2_header,
+    read_mass_from_header,
+    read_all_mass_from_header,
+    read_any_mass_from_header,
 
     GadgetKeys,
     GadgetTypes,
@@ -60,10 +68,13 @@ export
 
     # Houdini
     write_houdini,
+    write_houdini_append,
 
     # ConfParser
     loadconfig,
     loadfromconfig,
+    IOConfigGadget2,
+    IOConfigJLD2,
 
     # Tools
     renamereplace,

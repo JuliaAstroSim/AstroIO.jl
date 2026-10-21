@@ -16,11 +16,11 @@ function write_houdini_data(f::IOStream, pos::Array{T,N}, time::Float64, units =
     uLength = getuLength(units)
     for p in pos
         buffer = @sprintf(
-            "%d,%f,%f,%f,%f\n",
+            "%d,%.17g,%.17g,%.17g,%.17g\n",
             p.ID,
-            ustrip(uLength, p.x) * pos_ratio,
-            ustrip(uLength, p.y) * pos_ratio,
-            ustrip(uLength, p.z) * pos_ratio,
+            ustrip_or_raw(uLength, p.x) * pos_ratio,
+            ustrip_or_raw(uLength, p.y) * pos_ratio,
+            ustrip_or_raw(uLength, p.z) * pos_ratio,
             time,
         )
         write(f, buffer)
@@ -37,14 +37,14 @@ function write_houdini_data(f::IOStream, data, time::Float64, units = uAstro;
 
     for p in Iterators.flatten(data)
         buffer = @sprintf(
-            "%d,%f,%f,%f,%f,%f,%f,%f\n",
+            "%d,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g\n",
             p.ID,
-            ustrip(uLength, p.Pos.x) * pos_ratio,
-            ustrip(uLength, p.Pos.y) * pos_ratio,
-            ustrip(uLength, p.Pos.z) * pos_ratio,
-            ustrip(uVel, p.Vel.x) * vel_ratio,
-            ustrip(uVel, p.Vel.y) * vel_ratio,
-            ustrip(uVel, p.Vel.z) * vel_ratio,
+            ustrip_or_raw(uLength, p.Pos.x) * pos_ratio,
+            ustrip_or_raw(uLength, p.Pos.y) * pos_ratio,
+            ustrip_or_raw(uLength, p.Pos.z) * pos_ratio,
+            ustrip_or_raw(uVel, p.Vel.x) * vel_ratio,
+            ustrip_or_raw(uVel, p.Vel.y) * vel_ratio,
+            ustrip_or_raw(uVel, p.Vel.z) * vel_ratio,
             time,
         )
         write(f, buffer)
@@ -62,11 +62,10 @@ automatically from the type of `data`. Use [`write_houdini_append`](@ref)
 to extend an existing file without rewriting the header.
 """
 function write_houdini(filename::AbstractString, data, time::Float64, units = uAstro)
-    f = open(filename, "w")
-    write_houdini_header(f, data)
-    status = write_houdini_data(f, data, time, units)
-    close(f)
-    return status
+    return open(filename, "w") do f
+        write_houdini_header(f, data)
+        write_houdini_data(f, data, time, units)
+    end
 end
 
 """
@@ -77,10 +76,9 @@ Append `data` to an existing `.hcsv` file as a new batch of rows at time
 written by [`write_houdini`](@ref).
 """
 function write_houdini_append(filename::AbstractString, data, time::Float64, units = uAstro)
-    f = open(filename, "a")
-    status = write_houdini_data(f, data, time, units)
-    close(f)
-    return status
+    return open(filename, "a") do f
+        write_houdini_data(f, data, time, units)
+    end
 end
 
 """
@@ -109,25 +107,27 @@ function write_houdini(OutputFile::AbstractString, folder::AbstractString, filen
                        time_ratio = 1.0,
                        pos_ratio = 1.0,
                        vel_ratio = 1.0,)
-    output = open(OutputFile, "w")
-    write(output, "id,Px,Py,Pz,Vx,Vy,Vz,time\n")
+    open(OutputFile, "w") do output
+        write(output, "id,Px,Py,Pz,Vx,Vy,Vz,time\n")
 
-    progress = Progress(length(Counts), "Loading data and precessing: ")
-    for i in eachindex(Counts)
-        input = joinpath(folder, string(filenamebase, @sprintf("%04d", Counts[i]), suffix))
+        progress = Progress(length(Counts); desc = "Loading data and precessing: ")
+        for i in eachindex(Counts)
+            input = joinpath(folder, string(filenamebase, @sprintf("%04d", Counts[i]), suffix))
 
-        if FileType == gadget2()
-            header, data = read_gadget2(input)
-        elseif FileType == jld2()
-            data = read_jld(input)
+            if FileType == gadget2()
+                header, data = read_gadget2(input, units)
+            elseif FileType == jld2()
+                data = read_jld(input)
+            else
+                error("Unsupported file type: $(FileType)")
+            end
+
+            write_houdini_data(output, data, times[i] * time_ratio, units; pos_ratio = pos_ratio, vel_ratio = vel_ratio)
+
+            next!(progress, showvalues = [("iter", i), ("time", times[i]), ("file", input)])
         end
-
-        write_houdini_data(output, data, times[i] * time_ratio, units; pos_ratio = pos_ratio, vel_ratio = vel_ratio)
-
-        next!(progress, showvalues = [("iter", i), ("time", times[i]), ("file", input)])
     end
-    
-    close(output)
+
     println("Data saved to ", OutputFile)
     return true
 end

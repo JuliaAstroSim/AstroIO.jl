@@ -87,15 +87,16 @@ the file, so no extra configuration is needed on the read side.
 ## Position-only reads
 
 For visualization or coarse previews the position block is enough &mdash; it
-skips header parsing, the velocity/ID/mass blocks, and per-particle unit
-conversion. The result is a `StructArray` of `PVector`:
+reads the header only for the particle counts, then reads the `POS ` block
+and skips the velocity/ID/mass blocks. The result is a `StructArray` of
+`PVector`:
 
 ```julia
 positions = read_gadget2_pos("snapshot.gadget2", uAstro)
 ```
 
-If the file is in format 2, only the `POS ` block is scanned; for format 1
-the read fast-forwards to the third block.
+Format 2 scans the blocks for the `POS ` label; format 1 expects the `POS `
+block immediately after the header.
 
 ## Headers
 
@@ -108,15 +109,15 @@ automatically:
 header = HeaderGadget2(data)
 ```
 
-You can also build one explicitly by passing keyword arguments:
+Per-type counts are always taken from `data`; the remaining header fields can
+be supplied as keyword arguments:
 
 ```julia
-header = HeaderGadget2(;
-    Counts      = MVector{6,Int32}([n_gas, n_halo, n_disk, n_bulge, n_star, n_bh]),
-    time        = 0.0,
-    redshift    = 0.0,
-    counts_total = Counts,
-    nfiles      = 1,
+header = HeaderGadget2(data;
+    time         = 0.0,
+    redshift     = 0.0,
+    counts_total = count_gadget_types(data),
+    nfiles       = 1,
 )
 ```
 

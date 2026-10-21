@@ -41,13 +41,14 @@ end
     implemented. Callers can rely on [`read_hdf_pos`](@ref) instead.
 """
 function read_hdf_particles(filename::AbstractString, units = uAstro)
-    file = h5open(filename, "r")
+    return h5open(filename, "r") do file
+        groups = names(file)
 
-    groups = names(file)
+        uLength = getuLength(units)
 
-    uLength = getuLength(units)
-
-    # Read
+        # Read
+        nothing
+    end
 end
 
 """
@@ -61,17 +62,17 @@ This is currently the only fully-implemented HDF5 read path; the
 remaining [`read_hdf`](@ref) helpers are placeholders.
 """
 function read_hdf_pos(filename::AbstractString, u = u"kpc")
-    file = h5open(filename, "r")
+    return h5open(filename, "r") do file
+        groups = names(file)
 
-    groups = names(file)
-
-    pos = Array{PVector,1}()
-    for g in groups
-        if startswith(g, "PartType")
-            append!(pos, pconvert(Array(file[g]["Coordinates"]) .* u))
+        pos = Array{PVector,1}()
+        for g in groups
+            if startswith(g, "PartType")
+                append!(pos, pconvert(Array(file[g]["Coordinates"]) .* u))
+            end
         end
+        pos
     end
-    return pos
 end
 
 """

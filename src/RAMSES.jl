@@ -19,23 +19,23 @@ once the reader is implemented.
 """
 function write_ramses(filename::String, data, units = uAstro)
     uLength = getuLength(units)
-    uVel = u"km/s"
+    uVel = isnothing(units) ? nothing : u"km/s"
     uMass = getuMass(units)
 
-    f = open(filename, "w")
-    for p in data
-        buffer = @sprintf(
-            "%f %f %f %f %f %f %f\n",
-            ustrip(uLength, p.Pos.x),
-            ustrip(uLength, p.Pos.y),
-            ustrip(uLength, p.Pos.z),
-            ustrip(uVel, p.Vel.x),
-            ustrip(uVel, p.Vel.y),
-            ustrip(uVel, p.Vel.z),
-            ustrip(uMass, p.Mass),
-        )
-        write(f, buffer)
+    open(filename, "w") do f
+        for p in data
+            buffer = @sprintf(
+                "%.17g %.17g %.17g %.17g %.17g %.17g %.17g\n",
+                ustrip_or_raw(uLength, p.Pos.x),
+                ustrip_or_raw(uLength, p.Pos.y),
+                ustrip_or_raw(uLength, p.Pos.z),
+                ustrip_or_raw(uVel, p.Vel.x),
+                ustrip_or_raw(uVel, p.Vel.y),
+                ustrip_or_raw(uVel, p.Vel.z),
+                ustrip_or_raw(uMass, p.Mass),
+            )
+            write(f, buffer)
+        end
     end
-    close(f)
     return true
 end

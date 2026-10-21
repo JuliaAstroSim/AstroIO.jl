@@ -362,19 +362,26 @@ the header.
 """
 read_any_mass_from_header(header::HeaderGadget2) = any(filter(!isnothing, read_mass_from_header(header)))
 
+function _check_header_data_length(header::HeaderGadget2, data)
+    n = sum(header.npart)
+    length(data) == n || throw(ArgumentError("header 声明了 $n 个粒子，但 data 含有 $(length(data)) 个粒子"))
+    return nothing
+end
+
 function get_blocks(f::Gadget2Stream, format::Int, header::HeaderGadget2)
     blocks = Vector{Gadget2Block}()
     get_block = format == 1 ? get_block_format1 : get_block_format2
+    names = format == 1 ? copy(gadget2_format1_names) : String[]
     # There is no mass block if we're going to read all of the masses from header
-    format == 1 && read_all_mass_from_header(header) && filter!(e->e≠"MASS",gadget2_format1_names)
+    format == 1 && read_all_mass_from_header(header) && filter!(e -> e ≠ "MASS", names)
     counter = 1
     seekstart(f)
     while !eof(f)
         block = get_block(f)
         if format == 1
-            name = gadget2_format1_names[counter]
-            counter +=1
-            block.label = name
+            counter > length(names) && error("Gadget2 format-1 number of blocks is larger than known")
+            block.label = names[counter]
+            counter += 1
         end
 
         block.label == "HEAD" && continue
@@ -646,24 +653,20 @@ The returned [`HeaderGadget2`](@ref) can be inspected for `npart` /
 `mass` distributions before committing to reading the full snapshot.
 """
 function read_gadget2_header(filename::AbstractString)
-    f = open(filename, "r")
-
-    temp = read(f, Int32)
-    if temp == 256
-        seekstart(f)
-        header = read_gadget2_header(f)
-    elseif temp == 8 # Format 2
-        name = String(read(f, 4))
-        temp1 = read(f, Int32)
-        temp2 = read(f, Int32)
-        header = read_gadget2_header(f)
-    else
-        error("Unsupported Gadget2 Format!")
+    return open(filename, "r") do f
+        temp = read(f, Int32)
+        if temp == 256
+            seekstart(f)
+            read_gadget2_header(f)
+        elseif temp == 8 # Format 2
+            name = String(read(f, 4))
+            temp1 = read(f, Int32)
+            temp2 = read(f, Int32)
+            read_gadget2_header(f)
+        else
+            error("Unsupported Gadget2 Format!")
+        end
     end
-
-    close(f)
-
-    return header
 end
 
 function read_gadget2_pos_kernel(f::Gadget2Stream, header::HeaderGadget2, units, fileunits)
@@ -717,26 +720,22 @@ end
 Only read position block and return a StructArray.
 """
 function read_gadget2_pos(filename::AbstractString, units, fileunits = uGadget2)
-    f = open(filename, "r")
-
-    temp = read(f, Int32)
-    if temp == 256
-        seekstart(f)
-        header = read_gadget2_header(f)
-        pos = read_gadget2_pos_kernel(f, header, units, fileunits)
-    elseif temp == 8 # Format 2
-        name = String(read(f, 4))
-        temp1 = read(f, Int32)
-        temp2 = read(f, Int32)
-        header = read_gadget2_header(f)
-        pos = read_gadget2_pos_kernel_format2(f, header, units, fileunits)
-    else
-        error("Unsupported Gadget2 Format!")
+    return open(filename, "r") do f
+        temp = read(f, Int32)
+        if temp == 256
+            seekstart(f)
+            header = read_gadget2_header(f)
+            read_gadget2_pos_kernel(f, header, units, fileunits)
+        elseif temp == 8 # Format 2
+            name = String(read(f, 4))
+            temp1 = read(f, Int32)
+            temp2 = read(f, Int32)
+            header = read_gadget2_header(f)
+            read_gadget2_pos_kernel_format2(f, header, units, fileunits)
+        else
+            error("Unsupported Gadget2 Format!")
+        end
     end
-
-    close(f)
-
-    return pos
 end
 
 # Write
@@ -805,7 +804,7 @@ function write_gadget2_header(f::Gadget2Stream, header::HeaderGadget2)
     write(f, Int32(header.flag_entropy_instead_u))
 
     for i = 1:60
-        write(f, UInt8(0))
+        write(f, UInt8(header.fill_array[i]))
     end
 
     write(f, Int32(temp))
@@ -818,9 +817,9 @@ function write_POS(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer, uLe
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(uLength, p.Pos.x)))
-                write(f, Float32(ustrip(uLength, p.Pos.y)))
-                write(f, Float32(ustrip(uLength, p.Pos.z)))
+                write(f, Float32(ustrip_or_raw(uLength, p.Pos.x)))
+                write(f, Float32(ustrip_or_raw(uLength, p.Pos.y)))
+                write(f, Float32(ustrip_or_raw(uLength, p.Pos.z)))
             end
         end
     end
@@ -833,9 +832,9 @@ function write_VEL(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer, uVe
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(uVel, p.Vel.x)))
-                write(f, Float32(ustrip(uVel, p.Vel.y)))
-                write(f, Float32(ustrip(uVel, p.Vel.z)))
+                write(f, Float32(ustrip_or_raw(uVel, p.Vel.x)))
+                write(f, Float32(ustrip_or_raw(uVel, p.Vel.y)))
+                write(f, Float32(ustrip_or_raw(uVel, p.Vel.z)))
             end
         end
     end
@@ -862,7 +861,7 @@ function write_MASS_kernel(f::Gadget2Stream, data::AbstractArray, header::Header
             type = GadgetTypes[i]
             for p in data
                 if p.Collection == type
-                    write(f, Float32(ustrip(uMass, p.Mass)))
+                    write(f, Float32(ustrip_or_raw(uMass, p.Mass)))
                 end
             end
         end
@@ -889,7 +888,7 @@ function write_Entropy(f::Gadget2Stream, data::AbstractArray, NumGas::Integer, u
     write(f, Int32(temp))
     for p in data
         if p.Collection == GAS
-            write(f, Float32(ustrip(uEntropy, p.Entropy)))
+            write(f, Float32(ustrip_or_raw(uEntropy, p.Entropy)))
         end
     end
     write(f, Int32(temp))
@@ -900,7 +899,7 @@ function write_Density(f::Gadget2Stream, data::AbstractArray, NumGas::Integer, u
     write(f, Int32(temp))
     for p in data
         if p.Collection == GAS
-            write(f, Float32(ustrip(uDensity, p.Density)))
+            write(f, Float32(ustrip_or_raw(uDensity, p.Density)))
         end
     end
     write(f, Int32(temp))
@@ -911,7 +910,7 @@ function write_Hsml(f::Gadget2Stream, data::AbstractArray, NumGas::Integer, uLen
     write(f, Int32(temp))
     for p in data
         if p.Collection == GAS
-            write(f, Float32(ustrip(uLength, p.Hsml)))
+            write(f, Float32(ustrip_or_raw(uLength, p.Hsml)))
         end
     end
     write(f, Int32(temp))
@@ -923,7 +922,7 @@ function write_POT(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer, uEn
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(uEnergyUnit, p.Potential)))
+                write(f, Float32(ustrip_or_raw(uEnergyUnit, p.Potential)))
             end
         end
     end
@@ -936,9 +935,9 @@ function write_ACCE(f::Gadget2Stream, data::AbstractArray, NumTotal::Integer, uA
     for type in GadgetTypes
         for p in data
             if p.Collection == type
-                write(f, Float32(ustrip(uAcc, p.Acc.x)))
-                write(f, Float32(ustrip(uAcc, p.Acc.y)))
-                write(f, Float32(ustrip(uAcc, p.Acc.z)))
+                write(f, Float32(ustrip_or_raw(uAcc, p.Acc.x)))
+                write(f, Float32(ustrip_or_raw(uAcc, p.Acc.y)))
+                write(f, Float32(ustrip_or_raw(uAcc, p.Acc.z)))
             end
         end
     end
@@ -949,6 +948,7 @@ function write_gadget2_particle(f::Gadget2Stream, header::HeaderGadget2, data, u
         acc = false,
         pot = false,
     )
+    _check_header_data_length(header, data)
     NumTotal = sum(header.npart)
 
     write_POS(f, data, NumTotal, getuLength(units))
@@ -989,14 +989,15 @@ Gadget2 header is automatedly generated if not provided.
 - pot::Bool = false : write potential data
 """
 function write_gadget2(filename::AbstractString, header::HeaderGadget2, data::AbstractArray, units = uGadget2; format2 = true, kw...)
+    _check_header_data_length(header, data)
     if format2
         write_gadget2_format2(filename, header, data, units; kw...)
         return true
     else
-        f = open(filename, "w")   
-        write_gadget2_header(f, header)
-        write_gadget2_particle(f, header, data, units; kw...)
-        close(f)
+        open(filename, "w") do f
+            write_gadget2_header(f, header)
+            write_gadget2_particle(f, header, data, units; kw...)
+        end
         return true
     end
 
@@ -1018,6 +1019,7 @@ function write_gadget2_format2(f::Gadget2Stream, header::HeaderGadget2, data::Ab
         acc = false,
         pot = false,
     )
+    _check_header_data_length(header, data)
     write_gadget2_format2_block(f, "HEAD", 256)
     write_gadget2_header(f, header)
 
@@ -1049,7 +1051,8 @@ function write_gadget2_format2(f::Gadget2Stream, header::HeaderGadget2, data::Ab
     # Write Gas
     NumGas = header.npart[1]
     if NumGas > 0 && header.flag_entropy_instead_u > 0
-        #TODO Entropy
+        write_gadget2_format2_block(f, "ENTR", 4 * NumGas)
+        write_Entropy(f, data, NumGas, getuEntropy(units))
 
         write_gadget2_format2_block(f, "RHO ", 4 * NumGas)
         write_Density(f, data, NumGas, getuDensity(units))
@@ -1085,6 +1088,7 @@ function write_gadget2_format2(filename::AbstractString, header::HeaderGadget2, 
         acc = false,
         pot = false,
     )
+    _check_header_data_length(header, data)
     open(filename, "w") do f
         write_gadget2_format2(f, header, data, units; acc, pot)
     end
@@ -1136,8 +1140,7 @@ function load(f::File{format"Gadget2"}, units = uAstro, fileunits = uGadget2)
 end
 
 function save(s::Stream{format"Gadget2"}, header::HeaderGadget2, data::AbstractArray, units = uGadget2)
-    #write_gadget2_header(s, header)
-    #write_gadget2_particle(s, header, data)
+    write_gadget2_header(s, header)
     write_gadget2_particle(s, header, data, units)
 end
 

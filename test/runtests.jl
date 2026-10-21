@@ -32,6 +32,21 @@ using AstroIO
     @test AstroIO.read_any_mass_from_header(h) == false
 end
 
+@testset "Format1LabelState" begin
+    names_before = copy(AstroIO.gadget2_format1_names)
+
+    h, d = read_gadget2("gassphere_littleendian.gadget2", uGadget2, uGadget2)
+    h.mass[1] = 1.0
+    write_gadget2("testGadgetHeaderMass.gadget2", h, d, uGadget2; format2 = false)
+    read_gadget2("testGadgetHeaderMass.gadget2", uGadget2)
+
+    @test AstroIO.gadget2_format1_names == names_before
+
+    h2, d2 = read_gadget2("gassphere_littleendian.gadget2", uGadget2, uGadget2)
+    @test d2.Mass[1] == d.Mass[1]
+    @test d2.Entropy[1] == d.Entropy[1]
+end
+
 @testset "GadgetFormat2" begin
     h, d = read_gadget2("pot_acc.format2.gadget2", uAstro, uGadget2)
     @test h.npart[5] == 1000
@@ -94,6 +109,17 @@ end
 
     @test !iszero(norm(average(d, :Acc)))
     @test !iszero(norm(average(d, :Potential)))
+end
+
+@testset "GadgetFormat2Entropy" begin
+    h, d = read_gadget2("gassphere_littleendian.gadget2", uGadget2, uGadget2)
+    h.flag_entropy_instead_u = 1
+    @test write_gadget2_format2("testGadgetEntropy.gadget2", h, d, uGadget2)
+
+    h2, d2 = read_gadget2("testGadgetEntropy.gadget2", uGadget2, uGadget2)
+    @test d2.Entropy[1] == d.Entropy[1]
+    @test d2.Density[1] == d.Density[1]
+    @test d2.Hsml[1] == d.Hsml[1]
 end
 
 @testset "MassFromHeader" begin
@@ -170,6 +196,21 @@ end
     @test length(d) == 5
 end
 
+@testset "GadgetWriteRawUnits" begin
+    h, d = read_gadget2("gassphere_littleendian.gadget2", uAstro)
+    @test write_gadget2("testGadgetRaw.gadget2", h, d, nothing)
+
+    h2, d2 = read_gadget2("testGadgetRaw.gadget2", nothing, uGadget2)
+    @test d2.Pos[1].x == ustrip(d.Pos[1].x)
+    @test d2.Mass[1] == ustrip(d.Mass[1])
+end
+
+@testset "HeaderLengthCheck" begin
+    h = HeaderGadget2([Star(uAstro) for _ in 1:5])
+    @test_throws ArgumentError write_gadget2("testGadgetMismatch.gadget2",
+                                             h, [Star(uAstro) for _ in 1:3], uAstro)
+end
+
 @testset "GadgetHeaderConstructor" begin
     # HeaderGadget2 from data
     stars = [Star(uAstro) for i = 1:5]
@@ -201,7 +242,15 @@ end
     h, d = load("gassphere_littleendian.gadget2", uAstro)
     @test length(d) == 1472
 
-    @test isnothing(save("testFileIO.gadget2", h, d))
+    h2, d2 = load("gassphere_littleendian.gadget2", uGadget2, uGadget2)
+    @test isnothing(save("testFileIO.gadget2", h2, d2))
+
+    h3, d3 = load("testFileIO.gadget2", uGadget2, uGadget2)
+    @test length(d3) == length(d2)
+    @test h3.npart == h2.npart
+    @test d3.Pos[1] == d2.Pos[1]
+    @test d3.Vel[1] == d2.Vel[1]
+    @test d3.Mass[1] == d2.Mass[1]
 end
 
 @testset "CSV" begin
@@ -213,6 +262,17 @@ end
 
     data = [[Star() for i = 1:10]; [Ball() for i = 1:10]]
     @test write_csv("testcsvGeneral", data, nothing)
+    @test occursin("x y z", readlines("testcsvGeneral.csv")[1])
+
+    h, d = read_gadget2("pot_acc.format2.gadget2", uGadget2, uGadget2)
+    @test write_csv("testcsvGadget", d, uGadget2)
+    lines = readlines("testcsvGadget.csv")
+    @test occursin("x y z", lines[1])
+    @test length(split(lines[2], ",")) == 11
+    @test parse(Float64, split(lines[2], ",")[11]) ≈ 1.0e-8
+
+    @test write_csv("testcsvRaw", d, nothing)
+    @test length(split(readlines("testcsvRaw.csv")[2], ",")) == 11
 
     @test write_ramses("ramses.csv", stars)
 end
@@ -336,4 +396,8 @@ end
     AstroIO.write_houdini_data(f, stars, 0.5, uAstro; pos_ratio = 2.0, vel_ratio = 0.5)
     close(f)
     @test isfile("testHoudiniRatio.hcsv")
+
+    cp("gassphere_littleendian.gadget2", "testGadgetBatch_0000.gadget2"; force = true)
+    write_houdini("testHoudiniBatch.hcsv", "./", "testGadgetBatch_", [0], ".gadget2", gadget2(), uAstro)
+    @test countlines("testHoudiniBatch.hcsv") == 1 + 1472
 end
